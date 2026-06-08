@@ -33,14 +33,19 @@ Check the [RAW_DATA_OVERVIEW.md](RAW_DATA_OVERVIEW.md) file for more details.
 
 # Skills
 
-The skills are stored in the `skills/` directory.
+Skills are stored in `.claude/skills/` (Cursor reads this path).
 
 ```
-skills/
+.claude/skills/          # canonical — Cursor + Claude
   legislative-etl/
+  entity-resolver/
   risk-classifier/
   story-detector/
   subagent-orchestrator/
 ```
 
 Check the [SKILLS.md](SKILLS.md) file for more details.
+
+# Technical requirements
+
+- Subagents shold act locally with deterministic outputs on the raw data - no external AI api calls for the ETL.
