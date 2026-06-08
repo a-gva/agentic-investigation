@@ -45,3 +45,7 @@ Skills are stored in `.claude/skills/` (Cursor reads this path).
 ```
 
 Check the [SKILLS.md](SKILLS.md) file for more details.
+
+# Technical requirements
+
+- Subagents shold act locally with deterministic outputs on the raw data - no external AI api calls for the ETL.
