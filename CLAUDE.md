@@ -49,3 +49,32 @@ Check the [SKILLS.md](SKILLS.md) file for more details.
 # Technical requirements
 
 - Subagents shold act locally with deterministic outputs on the raw data - no external AI api calls for the ETL.
+
+# Submission requirements
+
+**Dataset**
+
+- Federal government corpus (2022–March 2026): lobbying filings + congressional press releases
+- Access granted upon team registration
+
+**Submission Package (4 components)**
+
+- **Agent Skill(s)** — reusable workflow directory following the Agent Skills spec: a `SKILL.md` with YAML frontmatter, optional `scripts/`, `references/`, and `assets/`; must be self-contained and validate against the spec
+- **Findings Report** — written summary of newsworthy discoveries (accurate, sourced to specific records, genuinely of public interest — not just dataset summaries)
+- **Interaction Traces** — full logs of model sessions (raw JSON or rendered page) including inputs, tool calls, outputs, and human interventions; keyed to skill invocations
+- **README.md** — maps skills to findings, lists outside data used, notes conflicts of interest, flags any possible legal violations
+
+**Evaluation Criteria**
+
+- Findings must be accurate, traceable, and newsworthy (gating requirement)
+- Skill scored 0–3 on four equally weighted dimensions:
+  - Investigation organization (tracks open/closed threads across sessions)
+  - Corpus efficiency (offloads extraction/filtering to deterministic tools)
+  - Human verifiability (every claim tied to a source, auditable traces)
+  - Novel investigative capability (entity resolvers, cross-reference tools, etc.)
+- Skill must be **reproducible** — max score of 1 on any dimension if it can't be re-run
+
+**Ethics**
+
+- Apply newsroom editorial judgment
+- Flag potential legal violations in the report and to the evaluation panel
