@@ -1,0 +1,39 @@
+{
+  "name": "agentic-investigation",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "init": "tsx src/db/setup.ts",
+    "etl": "tsx src/etl/pipeline.ts --data-dir ./data --db ./investigation.db",
+    "resolve": "tsx src/resolve/entity-resolver.ts --db ./investigation.db",
+    "classify": "tsx src/classifier/risk-classifier.ts --db ./investigation.db",
+    "stories": "tsx src/stories/run.ts --db ./investigation.db",
+    "run": "pnpm etl && pnpm resolve && pnpm classify && pnpm stories",
+    "export": "tsx src/review/export-findings.ts --db ./investigation.db && tsx src/review/export-evidence-pack.ts --db ./investigation.db",
+    "query": "tsx src/query.ts --db ./investigation.db",
+    "typecheck": "tsc --noEmit"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
+    "@huggingface/transformers": "^4.2.0",
+    "better-sqlite3": "^12.10.0",
+    "fast-xml-parser": "^5.8.0",
+    "glob": "^13.0.6",
+    "sqlite-vec": "^0.1.9",
+    "stream-json": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest",
+    "@types/node": "^25.9.2",
+    "tsx": "^4.22.4",
+    "typescript": "^5"
+  },
+  "trustedDependencies": [
+    "better-sqlite3",
+    "onnxruntime-node",
+    "protobufjs"
+  ]
+}
