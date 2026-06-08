@@ -146,3 +146,8 @@ vite.config.ts.timestamp-*
 data/
 data/*
 data.zip
+
+# Pipeline SQLite database (generated at runtime)
+investigation.db*
+*.db-shm
+*.db-wal
