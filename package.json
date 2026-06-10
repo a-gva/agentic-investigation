@@ -8,6 +8,7 @@
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
     "etl": "tsx src/modules/etl/pipeline.ts --data-dir ./data --db ./investigation.db",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "packageManager": "pnpm@9.12.3",
@@ -28,7 +29,8 @@
     "@types/node": "^25.9.2",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   },
   "trustedDependencies": [
     "better-sqlite3",
