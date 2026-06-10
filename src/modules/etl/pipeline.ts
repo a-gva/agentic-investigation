@@ -1,14 +1,14 @@
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { eq, sql } from 'drizzle-orm';
 import { glob } from 'glob';
-import { openDB, type DB } from '../db/setup.js';
-import { agentRuns, etlRuns, records } from '../db/schema.js';
-import { makeUpsert } from './upsert.js';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { agentRuns, etlRuns, records } from '../../db/schema.js';
+import { openDB, type DB } from '../../db/setup.js';
+import type { LegislativeRecord } from '../../db/types.js';
 import { ingestJsonFile } from './ingest-json.js';
-import { ingestXmlFile } from './ingest-xml.js';
 import { ingestPressFile } from './ingest-press.js';
-import type { LegislativeRecord } from '../types.js';
+import { ingestXmlFile } from './ingest-xml.js';
+import { makeUpsert } from './upsert.js';
 
 // --- CLI args ---
 const args = process.argv.slice(2);
@@ -17,7 +17,7 @@ function getArg(flag: string, fallback: string): string {
   return i !== -1 && args[i + 1] ? args[i + 1]! : fallback;
 }
 const dataDir = resolve(getArg('--data-dir', './data'));
-const dbPath  = resolve(getArg('--db', './investigation.db'));
+const dbPath = resolve(getArg('--db', './investigation.db'));
 
 function log(msg: string) {
   process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${msg}\n`);
@@ -33,16 +33,18 @@ function formatDuration(ms: number): string {
 }
 
 function perfLog(phase: string, elapsedMs: number, rows?: number) {
-  const rate = rows != null && elapsedMs > 0
-    ? ` (${Math.round(rows / (elapsedMs / 1000)).toLocaleString()} rows/s)`
-    : '';
+  const rate =
+    rows != null && elapsedMs > 0
+      ? ` (${Math.round(rows / (elapsedMs / 1000)).toLocaleString()} rows/s)`
+      : '';
   log(`⏱  ${phase}: ${formatDuration(elapsedMs)}${rate}`);
 }
 
 // --- Resumability helpers ---
 
 function alreadyDone(db: DB, filePath: string): boolean {
-  const row = db.select({ status: etlRuns.status })
+  const row = db
+    .select({ status: etlRuns.status })
     .from(etlRuns)
     .where(eq(etlRuns.filePath, filePath))
     .get();
@@ -54,7 +56,11 @@ function markFileStart(db: DB, filePath: string, source: string) {
     .values({ filePath, source, rowsWritten: 0, status: 'running' })
     .onConflictDoUpdate({
       target: etlRuns.filePath,
-      set: { rowsWritten: 0, startedAt: sql`(datetime('now'))`, status: 'running' },
+      set: {
+        rowsWritten: 0,
+        startedAt: sql`(datetime('now'))`,
+        status: 'running',
+      },
     })
     .run();
 }
@@ -84,12 +90,20 @@ async function runSenateETL(db: DB): Promise<number> {
 
   let total = 0;
   for (const filePath of files) {
-    if (alreadyDone(db, filePath)) { log(`  skip (done) ${filePath}`); continue; }
+    if (alreadyDone(db, filePath)) {
+      log(`  skip (done) ${filePath}`);
+      continue;
+    }
     log(`  senate ${filePath}`);
     markFileStart(db, filePath, 'senate');
 
     try {
-      const rows = await ingestJsonFile(filePath, (batch: LegislativeRecord[]) => { upsert(batch); });
+      const rows = await ingestJsonFile(
+        filePath,
+        (batch: LegislativeRecord[]) => {
+          upsert(batch);
+        },
+      );
       markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
@@ -105,28 +119,36 @@ async function runSenateETL(db: DB): Promise<number> {
 
 async function runHouseETL(db: DB): Promise<number> {
   const upsert = makeUpsert(db);
-  const files  = (await glob(`${dataDir}/house/**/*.xml`)).sort();
-  const BATCH  = 1000;
+  const files = (await glob(`${dataDir}/house/**/*.xml`)).sort();
+  const BATCH = 1000;
 
-  let total     = 0;
+  let total = 0;
   let fileCount = 0;
-  let pending:  string[] = [];
+  let pending: string[] = [];
 
   const flush = async (chunk: string[], startIdx: number) => {
     const key = `house:batch:${startIdx}`;
-    if (alreadyDone(db, key)) { log(`  skip (done) house batch ${startIdx}`); return 0; }
+    if (alreadyDone(db, key)) {
+      log(`  skip (done) house batch ${startIdx}`);
+      return 0;
+    }
     markFileStart(db, key, 'house');
 
     const batch: LegislativeRecord[] = [];
     let errors = 0;
     for (const f of chunk) {
-      try { batch.push(...ingestXmlFile(f)); }
-      catch { errors++; }
+      try {
+        batch.push(...ingestXmlFile(f));
+      } catch {
+        errors++;
+      }
     }
 
     const inserted = upsert(batch);
     markFileDone(db, key, inserted);
-    log(`  house files ${startIdx}–${startIdx + chunk.length - 1}: ${inserted} records (${errors} parse errors)`);
+    log(
+      `  house files ${startIdx}–${startIdx + chunk.length - 1}: ${inserted} records (${errors} parse errors)`,
+    );
     return inserted;
   };
 
@@ -149,16 +171,24 @@ async function runHouseETL(db: DB): Promise<number> {
 
 async function runPressETL(db: DB): Promise<number> {
   const upsert = makeUpsert(db);
-  const files  = (await glob(`${dataDir}/congress_press/*.jsonl`)).sort();
+  const files = (await glob(`${dataDir}/congress_press/*.jsonl`)).sort();
 
   let total = 0;
   for (const filePath of files) {
-    if (alreadyDone(db, filePath)) { log(`  skip (done) ${filePath}`); continue; }
+    if (alreadyDone(db, filePath)) {
+      log(`  skip (done) ${filePath}`);
+      continue;
+    }
     log(`  press ${filePath}`);
     markFileStart(db, filePath, 'congress_press');
 
     try {
-      const rows = await ingestPressFile(filePath, (batch: LegislativeRecord[]) => { upsert(batch); });
+      const rows = await ingestPressFile(
+        filePath,
+        (batch: LegislativeRecord[]) => {
+          upsert(batch);
+        },
+      );
       markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
@@ -181,8 +211,13 @@ async function main() {
   log(`Opening database at ${dbPath}`);
   const { db, close } = openDB(dbPath);
 
-  const runId = db.insert(agentRuns)
-    .values({ skillName: 'legislative-etl', inputsHash: `${dataDir}::${dbPath}`, status: 'running' })
+  const runId = db
+    .insert(agentRuns)
+    .values({
+      skillName: 'legislative-etl',
+      inputsHash: `${dataDir}::${dbPath}`,
+      status: 'running',
+    })
     .run().lastInsertRowid;
 
   const pipelineStart = performance.now();
@@ -228,4 +263,7 @@ async function main() {
   close();
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
