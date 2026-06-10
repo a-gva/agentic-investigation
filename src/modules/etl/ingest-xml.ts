@@ -1,7 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
-import type { LegislativeRecord } from '../../db/types.js';
+import type { NewRecord } from '../../db/schema.js';
 import { normalizeHouseXml } from './normalize-house.js';
 
 const XML_ARRAY_TAGS = new Set([
@@ -24,7 +24,7 @@ const xmlParser = new XMLParser({
   allowBooleanAttributes: true,
 });
 
-export function ingestXmlFile(filePath: string): LegislativeRecord[] {
+export function ingestXmlFile(filePath: string): NewRecord[] {
   const content = readFileSync(filePath, 'utf8');
   const parsed = xmlParser.parse(content);
   return normalizeHouseXml(parsed, basename(filePath));
