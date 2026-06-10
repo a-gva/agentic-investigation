@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto';
-import type { LegislativeRecord } from '../types.js';
+import type { LegislativeRecord } from '../../db/types.js';
 
 function hash(...parts: (string | number | null | undefined)[]): string {
-  return createHash('sha256').update(parts.map(p => String(p ?? '')).join('\x00')).digest('hex').slice(0, 32);
+  return createHash('sha256')
+    .update(parts.map((p) => String(p ?? '')).join('\x00'))
+    .digest('hex')
+    .slice(0, 32);
 }
 
 function parseCents(val: unknown): number | null {
@@ -22,14 +25,17 @@ function forceArray<T>(val: T | T[] | null | undefined): T[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalizeHouseXml(parsed: any, fileName: string): LegislativeRecord[] {
+export function normalizeHouseXml(
+  parsed: any,
+  fileName: string,
+): LegislativeRecord[] {
   const out: LegislativeRecord[] = [];
   const doc = parsed.LOBBYINGDISCLOSURE2 ?? parsed;
 
-  const orgName    = trim(doc.organizationName) ?? '';
+  const orgName = trim(doc.organizationName) ?? '';
   const clientName = trim(doc.clientName) ?? '';
-  const senateId   = trim(doc.senateID);
-  const houseId    = trim(doc.houseID);
+  const senateId = trim(doc.senateID);
+  const houseId = trim(doc.houseID);
   const reportYear = Number(trim(doc.reportYear)) || null;
   const reportType = trim(doc.reportType);
   const signedDate = trim(doc.signedDate);
@@ -50,20 +56,20 @@ export function normalizeHouseXml(parsed: any, fileName: string): LegislativeRec
 
   if (aliInfos.length === 0) {
     out.push({
-      source:      'house',
-      subSource:   'filing',
-      recordType:  reportType,
-      date:        isoDate,
-      fiscalYear:  reportYear,
-      entityName:  orgName || null,
-      entityType:  'registrant',
+      source: 'house',
+      subSource: 'filing',
+      recordType: reportType,
+      date: isoDate,
+      fiscalYear: reportYear,
+      entityName: orgName || null,
+      entityType: 'registrant',
       entityState: null,
       counterparty: clientName || null,
       amountCents: parseCents(doc.income) ?? parseCents(doc.expenses),
       description: null,
-      tags:        JSON.stringify([]),
-      rawHash:     hash('house', 'filing', houseId ?? fileName, '0'),
-      metadata:    JSON.stringify({
+      tags: JSON.stringify([]),
+      rawHash: hash('house', 'filing', houseId ?? fileName, '0'),
+      metadata: JSON.stringify({
         senate_id: senateId,
         house_id: houseId,
         file: fileName,
@@ -78,31 +84,36 @@ export function normalizeHouseXml(parsed: any, fileName: string): LegislativeRec
   for (let i = 0; i < aliInfos.length; i++) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ali: any = aliInfos[i];
-    const issueCode   = trim(ali.issueAreaCode);
-    const description = trim(ali.specific_issues?.description ?? ali.specific_issues);
+    const issueCode = trim(ali.issueAreaCode);
+    const description = trim(
+      ali.specific_issues?.description ?? ali.specific_issues,
+    );
 
     const coveredPositions: string[] = [];
     const lobbyists: string[] = [];
     for (const l of forceArray(ali.lobbyists?.lobbyist)) {
-      const name = [trim(l.lobbyistFirstName), trim(l.lobbyistLastName)].filter(Boolean).join(' ');
+      const name = [trim(l.lobbyistFirstName), trim(l.lobbyistLastName)]
+        .filter(Boolean)
+        .join(' ');
       if (name) lobbyists.push(name);
       const cp = trim(l.coveredPosition);
       if (cp) coveredPositions.push(cp);
     }
 
     out.push({
-      source:      'house',
-      subSource:   'filing',
-      recordType:  reportType,
-      date:        isoDate,
-      fiscalYear:  reportYear,
-      entityName:  orgName || null,
-      entityType:  'registrant',
+      source: 'house',
+      subSource: 'filing',
+      recordType: reportType,
+      date: isoDate,
+      fiscalYear: reportYear,
+      entityName: orgName || null,
+      entityType: 'registrant',
       entityState: null,
       counterparty: clientName || null,
-      amountCents: i === 0 ? (parseCents(doc.income) ?? parseCents(doc.expenses)) : null,
+      amountCents:
+        i === 0 ? (parseCents(doc.income) ?? parseCents(doc.expenses)) : null,
       description,
-      tags:    JSON.stringify([issueCode].filter(Boolean)),
+      tags: JSON.stringify([issueCode].filter(Boolean)),
       rawHash: hash('house', 'filing', houseId ?? fileName, String(i)),
       metadata: JSON.stringify({
         senate_id: senateId,

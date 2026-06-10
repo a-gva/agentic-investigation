@@ -1,6 +1,6 @@
-import { records } from '../db/schema.js';
-import type { DB } from '../db/setup.js';
-import type { LegislativeRecord } from '../types.js';
+import { records } from '../../db/schema.js';
+import type { DB } from '../../db/setup.js';
+import type { LegislativeRecord } from '../../db/types.js';
 
 // SQLite allows at most 32766 bound variables per statement.
 // records has 18 columns → max 1820 rows per INSERT.

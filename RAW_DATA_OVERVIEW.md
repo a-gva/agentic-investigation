@@ -72,24 +72,10 @@ data/congress_press/
 
 **Load it.**
 
-```python
-import json
-from pathlib import Path
+Run:
 
-root = Path("data/congress_press")
-
-# Single month
-with open(root / "2026-01.jsonl") as f:
-    for line in f:
-        rec = json.loads(line)
-        print(rec["member"]["name"], rec["title"])
-
-# Full decompressed year
-for path in sorted((root / "2025").glob("*.jsonl")):
-    with open(path) as f:
-        for line in f:
-            rec = json.loads(line)
-            # ...
+```bash
+bun run src/modules/data-visualizer/index.ts --data-dir ./data
 ```
 
 **Starting points.**

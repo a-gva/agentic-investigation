@@ -1,21 +1,21 @@
 // All types are inferred directly from the Drizzle schema.
 // Do not hand-edit — add columns in src/db/schema.ts instead.
 export type {
-  Record,
-  NewRecord,
-  Entity,
-  NewEntity,
-  Story,
-  NewStory,
-  EvidenceLink,
-  NewEvidenceLink,
-  InvestigationThread,
-  NewInvestigationThread,
   AgentRun,
-  NewAgentRun,
+  Entity,
   EtlRun,
+  EvidenceLink,
+  InvestigationThread,
+  NewAgentRun,
+  NewEntity,
   NewEtlRun,
-} from './db/schema.js';
+  NewEvidenceLink,
+  NewInvestigationThread,
+  NewRecord,
+  NewStory,
+  Record,
+  Story,
+} from './schema.js';
 
 // Convenience alias used by normalizers
-export type { NewRecord as LegislativeRecord } from './db/schema.js';
+export type { NewRecord as LegislativeRecord } from './schema.js';

@@ -1,12 +1,18 @@
+import { XMLParser } from 'fast-xml-parser';
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
-import { XMLParser } from 'fast-xml-parser';
-import type { LegislativeRecord } from '../types.js';
+import type { LegislativeRecord } from '../../db/types.js';
 import { normalizeHouseXml } from './normalize-house.js';
 
 const XML_ARRAY_TAGS = new Set([
-  'ali_info', 'lobbyist', 'ali_Code', 'inactive_lobbyist',
-  'inactive_ForeignEntity', 'affiliatedOrg', 'inactiveOrgName', 'foreignEntity',
+  'ali_info',
+  'lobbyist',
+  'ali_Code',
+  'inactive_lobbyist',
+  'inactive_ForeignEntity',
+  'affiliatedOrg',
+  'inactiveOrgName',
+  'foreignEntity',
 ]);
 
 const xmlParser = new XMLParser({

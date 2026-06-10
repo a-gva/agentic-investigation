@@ -1,18 +1,24 @@
+import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { createHash } from 'node:crypto';
-import type { LegislativeRecord } from '../types.js';
+import type { LegislativeRecord } from '../../db/types.js';
 
 function hash(...parts: (string | null | undefined)[]): string {
-  return createHash('sha256').update(parts.map(p => p ?? '').join('\x00')).digest('hex').slice(0, 32);
+  return createHash('sha256')
+    .update(parts.map((p) => p ?? '').join('\x00'))
+    .digest('hex')
+    .slice(0, 32);
 }
 
 export async function ingestPressFile(
   filePath: string,
   onBatch: (records: LegislativeRecord[]) => void,
-  batchSize = 200
+  batchSize = 200,
 ): Promise<number> {
-  const rl = createInterface({ input: createReadStream(filePath), crlfDelay: Infinity });
+  const rl = createInterface({
+    input: createReadStream(filePath),
+    crlfDelay: Infinity,
+  });
 
   let total = 0;
   let batch: LegislativeRecord[] = [];
@@ -30,28 +36,28 @@ export async function ingestPressFile(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const member = (obj.member ?? {}) as any;
-    const url   = String(obj.url ?? '');
+    const url = String(obj.url ?? '');
     const title = String(obj.title ?? '');
-    const text  = String(obj.text ?? '');
-    const date  = String(obj.date ?? '').slice(0, 10) || null;
+    const text = String(obj.text ?? '');
+    const date = String(obj.date ?? '').slice(0, 10) || null;
 
     const description = text
       ? `${title}\n\n${text.slice(0, 500)}${text.length > 500 ? '…' : ''}`
       : title || null;
 
     batch.push({
-      source:      'congress_press',
-      subSource:   'press',
-      recordType:  member.chamber ?? null,
+      source: 'congress_press',
+      subSource: 'press',
+      recordType: member.chamber ?? null,
       date,
-      fiscalYear:  date ? Number(date.slice(0, 4)) || null : null,
-      entityName:  member.name ?? null,
-      entityType:  'member',
+      fiscalYear: date ? Number(date.slice(0, 4)) || null : null,
+      entityName: member.name ?? null,
+      entityType: 'member',
       entityState: member.state ?? null,
       counterparty: null,
       amountCents: null,
       description,
-      tags:    JSON.stringify([member.party, member.chamber].filter(Boolean)),
+      tags: JSON.stringify([member.party, member.chamber].filter(Boolean)),
       rawHash: hash('press', url),
       metadata: JSON.stringify({
         url,
