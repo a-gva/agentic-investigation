@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
-import type { LegislativeRecord } from '../../db/types.js';
+import type { NewRecord } from '../../db/schema.js';
 
 function hash(...parts: (string | null | undefined)[]): string {
   return createHash('sha256')
@@ -12,7 +12,7 @@ function hash(...parts: (string | null | undefined)[]): string {
 
 export async function ingestPressFile(
   filePath: string,
-  onBatch: (records: LegislativeRecord[]) => void,
+  onBatch: (records: NewRecord[]) => void | Promise<void>,
   batchSize = 200,
 ): Promise<number> {
   const rl = createInterface({
@@ -21,7 +21,7 @@ export async function ingestPressFile(
   });
 
   let total = 0;
-  let batch: LegislativeRecord[] = [];
+  let batch: NewRecord[] = [];
 
   for await (const line of rl) {
     const trimmed = line.trim();
@@ -70,14 +70,14 @@ export async function ingestPressFile(
     });
 
     if (batch.length >= batchSize) {
-      onBatch(batch);
+      await onBatch(batch);
       total += batch.length;
       batch = [];
     }
   }
 
   if (batch.length > 0) {
-    onBatch(batch);
+    await onBatch(batch);
     total += batch.length;
   }
 

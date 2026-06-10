@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { LegislativeRecord } from '../../db/types.js';
+import type { NewRecord } from '../../db/schema.js';
 
 function hash(...parts: (string | number | null | undefined)[]): string {
   return createHash('sha256')
@@ -25,11 +25,8 @@ function forceArray<T>(val: T | T[] | null | undefined): T[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalizeHouseXml(
-  parsed: any,
-  fileName: string,
-): LegislativeRecord[] {
-  const out: LegislativeRecord[] = [];
+export function normalizeHouseXml(parsed: any, fileName: string): NewRecord[] {
+  const out: NewRecord[] = [];
   const doc = parsed.LOBBYINGDISCLOSURE2 ?? parsed;
 
   const orgName = trim(doc.organizationName) ?? '';

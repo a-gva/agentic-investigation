@@ -16,11 +16,11 @@ Streams JSON, XML, and JSONL files from the GAIN corpus into a normalized SQLite
 
 ## Corpus sources
 
-| Source | Path | Format |
-|--------|------|--------|
-| Senate LDA | `data/senate/` | JSON arrays (filings, contributions) |
-| House LDA | `data/house/` | XML per filing |
-| Congress press | `data/congress_press/` | JSONL per month |
+| Source         | Path                   | Format                               |
+| -------------- | ---------------------- | ------------------------------------ |
+| Senate LDA     | `data/senate/`         | JSON arrays (filings, contributions) |
+| House LDA      | `data/house/`          | XML per filing                       |
+| Congress press | `data/congress_press/` | JSONL per month                      |
 
 See `references/source-schemas.md` for field mappings.
 
@@ -29,6 +29,12 @@ See `references/source-schemas.md` for field mappings.
 ```bash
 npm install better-sqlite3 sqlite-vec stream-json fast-xml-parser glob
 npm install -D @types/better-sqlite3
+```
+
+## How to run
+
+```bash
+pnpm etl
 ```
 
 ## Source-specific normalization
@@ -45,20 +51,22 @@ Implementation: `src/db/setup.ts` — creates `records`, `entities`, `records_ft
 
 ## Key modules
 
-| Module | Purpose |
-|--------|---------|
-| `src/etl/ingest-json.ts` | Stream-parse Senate JSON arrays |
-| `src/etl/ingest-xml.ts` | Parse House LDA XML files |
-| `src/etl/ingest-press.ts` | Read congress_press JSONL line-by-line |
+| Module                        | Purpose                                        |
+| ----------------------------- | ---------------------------------------------- |
+| `src/etl/ingest-json.ts`      | Stream-parse Senate JSON arrays                |
+| `src/etl/ingest-xml.ts`       | Parse House LDA XML files                      |
+| `src/etl/ingest-press.ts`     | Read congress_press JSONL line-by-line         |
 | `src/etl/normalize-senate.ts` | Senate filing/contribution → LegislativeRecord |
-| `src/etl/normalize-house.ts` | House XML → LegislativeRecord |
-| `src/etl/detect-source.ts` | Route path → senate / house / congress_press |
-| `src/etl/upsert.ts` | INSERT OR IGNORE with dedup hash |
+| `src/etl/normalize-house.ts`  | House XML → LegislativeRecord                  |
+| `src/etl/detect-source.ts`    | Route path → senate / house / congress_press   |
+| `src/etl/upsert.ts`           | INSERT OR IGNORE with dedup hash               |
 
 ## Source detection
 
 ```typescript
-export function detectSource(filePath: string): 'senate' | 'house' | 'congress_press' {
+export function detectSource(
+  filePath: string,
+): 'senate' | 'house' | 'congress_press' {
   const lower = filePath.toLowerCase();
   if (lower.includes('congress_press')) return 'congress_press';
   if (lower.includes('senate') || lower.includes('sen_')) return 'senate';

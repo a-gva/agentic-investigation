@@ -2,9 +2,9 @@ import { eq, sql } from 'drizzle-orm';
 import { glob } from 'glob';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { openDB, type DB } from '../../db/index.js';
+import type { NewRecord } from '../../db/schema.js';
 import { agentRuns, etlRuns, records } from '../../db/schema.js';
-import { openDB, type DB } from '../../db/setup.js';
-import type { LegislativeRecord } from '../../db/types.js';
 import { ingestJsonFile } from './ingest-json.js';
 import { ingestPressFile } from './ingest-press.js';
 import { ingestXmlFile } from './ingest-xml.js';
@@ -42,8 +42,8 @@ function perfLog(phase: string, elapsedMs: number, rows?: number) {
 
 // --- Resumability helpers ---
 
-function alreadyDone(db: DB, filePath: string): boolean {
-  const row = db
+async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
+  const row = await db
     .select({ status: etlRuns.status })
     .from(etlRuns)
     .where(eq(etlRuns.filePath, filePath))
@@ -51,8 +51,9 @@ function alreadyDone(db: DB, filePath: string): boolean {
   return row?.status === 'done';
 }
 
-function markFileStart(db: DB, filePath: string, source: string) {
-  db.insert(etlRuns)
+async function markFileStart(db: DB, filePath: string, source: string) {
+  await db
+    .insert(etlRuns)
     .values({ filePath, source, rowsWritten: 0, status: 'running' })
     .onConflictDoUpdate({
       target: etlRuns.filePath,
@@ -65,15 +66,17 @@ function markFileStart(db: DB, filePath: string, source: string) {
     .run();
 }
 
-function markFileDone(db: DB, filePath: string, rowsWritten: number) {
-  db.update(etlRuns)
+async function markFileDone(db: DB, filePath: string, rowsWritten: number) {
+  await db
+    .update(etlRuns)
     .set({ rowsWritten, finishedAt: sql`(datetime('now'))`, status: 'done' })
     .where(eq(etlRuns.filePath, filePath))
     .run();
 }
 
-function markFileError(db: DB, filePath: string) {
-  db.update(etlRuns)
+async function markFileError(db: DB, filePath: string) {
+  await db
+    .update(etlRuns)
     .set({ status: 'error', finishedAt: sql`(datetime('now'))` })
     .where(eq(etlRuns.filePath, filePath))
     .run();
@@ -90,26 +93,26 @@ async function runSenateETL(db: DB): Promise<number> {
 
   let total = 0;
   for (const filePath of files) {
-    if (alreadyDone(db, filePath)) {
+    if (await alreadyDone(db, filePath)) {
       log(`  skip (done) ${filePath}`);
       continue;
     }
     log(`  senate ${filePath}`);
-    markFileStart(db, filePath, 'senate');
+    await markFileStart(db, filePath, 'senate');
 
     try {
       const rows = await ingestJsonFile(
         filePath,
-        (batch: LegislativeRecord[]) => {
-          upsert(batch);
+        async (batch: NewRecord[]) => {
+          await upsert(batch);
         },
       );
-      markFileDone(db, filePath, rows);
+      await markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
     } catch (err) {
       log(`    ERROR: ${err}`);
-      markFileError(db, filePath);
+      await markFileError(db, filePath);
     }
   }
   return total;
@@ -128,13 +131,13 @@ async function runHouseETL(db: DB): Promise<number> {
 
   const flush = async (chunk: string[], startIdx: number) => {
     const key = `house:batch:${startIdx}`;
-    if (alreadyDone(db, key)) {
+    if (await alreadyDone(db, key)) {
       log(`  skip (done) house batch ${startIdx}`);
       return 0;
     }
-    markFileStart(db, key, 'house');
+    await markFileStart(db, key, 'house');
 
-    const batch: LegislativeRecord[] = [];
+    const batch: NewRecord[] = [];
     let errors = 0;
     for (const f of chunk) {
       try {
@@ -144,8 +147,8 @@ async function runHouseETL(db: DB): Promise<number> {
       }
     }
 
-    const inserted = upsert(batch);
-    markFileDone(db, key, inserted);
+    const inserted = await upsert(batch);
+    await markFileDone(db, key, inserted);
     log(
       `  house files ${startIdx}–${startIdx + chunk.length - 1}: ${inserted} records (${errors} parse errors)`,
     );
@@ -175,26 +178,26 @@ async function runPressETL(db: DB): Promise<number> {
 
   let total = 0;
   for (const filePath of files) {
-    if (alreadyDone(db, filePath)) {
+    if (await alreadyDone(db, filePath)) {
       log(`  skip (done) ${filePath}`);
       continue;
     }
     log(`  press ${filePath}`);
-    markFileStart(db, filePath, 'congress_press');
+    await markFileStart(db, filePath, 'congress_press');
 
     try {
       const rows = await ingestPressFile(
         filePath,
-        (batch: LegislativeRecord[]) => {
-          upsert(batch);
+        async (batch: NewRecord[]) => {
+          await upsert(batch);
         },
       );
-      markFileDone(db, filePath, rows);
+      await markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
     } catch (err) {
       log(`    ERROR: ${err}`);
-      markFileError(db, filePath);
+      await markFileError(db, filePath);
     }
   }
   return total;
@@ -210,15 +213,15 @@ async function main() {
 
   log(`Opening database at ${dbPath}`);
   const { db, close } = openDB(dbPath);
-
-  const runId = db
+  const runResult = await db
     .insert(agentRuns)
     .values({
       skillName: 'legislative-etl',
       inputsHash: `${dataDir}::${dbPath}`,
       status: 'running',
     })
-    .run().lastInsertRowid;
+    .run();
+  const runId = Number(runResult.lastInsertRowid);
 
   const pipelineStart = performance.now();
 
@@ -245,12 +248,13 @@ async function main() {
   log(`=== ETL complete: ${total} records total ===`);
   perfLog('Total pipeline', elapsed, total);
 
-  db.update(agentRuns)
+  await db
+    .update(agentRuns)
     .set({ status: 'done', finishedAt: sql`(datetime('now'))` })
-    .where(eq(agentRuns.id, Number(runId)))
+    .where(eq(agentRuns.id, runId))
     .run();
 
-  const counts = db
+  const counts = await db
     .select({ source: records.source, n: sql<number>`count(*)` })
     .from(records)
     .groupBy(records.source)
