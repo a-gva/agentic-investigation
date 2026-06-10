@@ -23,6 +23,22 @@ function log(msg: string) {
   process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${msg}\n`);
 }
 
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${(ms / 1000).toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
+}
+
+function perfLog(phase: string, elapsedMs: number, rows?: number) {
+  const rate = rows != null && elapsedMs > 0
+    ? ` (${Math.round(rows / (elapsedMs / 1000)).toLocaleString()} rows/s)`
+    : '';
+  log(`⏱  ${phase}: ${formatDuration(elapsedMs)}${rate}`);
+}
+
 // --- Resumability helpers ---
 
 function alreadyDone(db: DB, filePath: string): boolean {
@@ -169,20 +185,30 @@ async function main() {
     .values({ skillName: 'legislative-etl', inputsHash: `${dataDir}::${dbPath}`, status: 'running' })
     .run().lastInsertRowid;
 
+  const pipelineStart = performance.now();
+
   log('=== Phase 1: Senate JSON ===');
+  const senateStart = performance.now();
   const senateRows = await runSenateETL(db);
+  perfLog('Senate', performance.now() - senateStart, senateRows);
   log(`Senate total: ${senateRows}`);
 
   log('=== Phase 2: House XML ===');
+  const houseStart = performance.now();
   const houseRows = await runHouseETL(db);
+  perfLog('House', performance.now() - houseStart, houseRows);
   log(`House total: ${houseRows}`);
 
   log('=== Phase 3: Congress Press ===');
+  const pressStart = performance.now();
   const pressRows = await runPressETL(db);
+  perfLog('Press', performance.now() - pressStart, pressRows);
   log(`Press total: ${pressRows}`);
 
   const total = senateRows + houseRows + pressRows;
+  const elapsed = performance.now() - pipelineStart;
   log(`=== ETL complete: ${total} records total ===`);
+  perfLog('Total pipeline', elapsed, total);
 
   db.update(agentRuns)
     .set({ status: 'done', finishedAt: sql`(datetime('now'))` })
