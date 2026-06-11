@@ -8,7 +8,7 @@ import { agentRuns, etlRuns, records } from '../../db/schema.js';
 import { ingestJsonFile } from './ingest-json.js';
 import { ingestPressFile } from './ingest-press.js';
 import { ingestXmlFile } from './ingest-xml.js';
-import { makeUpsert } from './upsert.js';
+import { insertRecords } from './insert-records.js';
 
 // --- CLI args ---
 const args = process.argv.slice(2);
@@ -82,7 +82,6 @@ async function markFileError(db: DB, filePath: string) {
 // --- Senate JSON ---
 
 async function runSenateETL(db: DB): Promise<number> {
-  const upsert = makeUpsert(db);
   const files = [
     ...(await glob(`${dataDir}/senate/*/filings/filings_*.json`)),
     ...(await glob(`${dataDir}/senate/*/contributions/contributions_*.json`)),
@@ -98,12 +97,12 @@ async function runSenateETL(db: DB): Promise<number> {
     await markFileStart(db, filePath, 'senate');
 
     try {
-      const rows = await ingestJsonFile(
-        filePath,
-        async (batch: NewDbRecord[]) => {
-          await upsert(batch);
-        },
-      );
+      let rows = 0;
+      await db.transaction(async (tx) => {
+        rows = await ingestJsonFile(filePath, async (batch: NewDbRecord[]) => {
+          await insertRecords(tx, batch);
+        });
+      });
       await markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
@@ -118,7 +117,6 @@ async function runSenateETL(db: DB): Promise<number> {
 // --- House XML ---
 
 async function runHouseETL(db: DB): Promise<number> {
-  const upsert = makeUpsert(db);
   const files = (await glob(`${dataDir}/house/**/*.xml`)).sort();
   const BATCH = 1000;
 
@@ -144,7 +142,10 @@ async function runHouseETL(db: DB): Promise<number> {
       }
     }
 
-    const inserted = await upsert(batch);
+    let inserted = 0;
+    await db.transaction(async (tx) => {
+      inserted = await insertRecords(tx, batch);
+    });
     await markFileDone(db, key, inserted);
     log(
       `  house files ${startIdx}–${startIdx + chunk.length - 1}: ${inserted} records (${errors} parse errors)`,
@@ -170,7 +171,6 @@ async function runHouseETL(db: DB): Promise<number> {
 // --- Congress Press ---
 
 async function runPressETL(db: DB): Promise<number> {
-  const upsert = makeUpsert(db);
   const files = (await glob(`${dataDir}/congress_press/*.jsonl`)).sort();
 
   let total = 0;
@@ -183,12 +183,12 @@ async function runPressETL(db: DB): Promise<number> {
     await markFileStart(db, filePath, 'congress_press');
 
     try {
-      const rows = await ingestPressFile(
-        filePath,
-        async (batch: NewDbRecord[]) => {
-          await upsert(batch);
-        },
-      );
+      let rows = 0;
+      await db.transaction(async (tx) => {
+        rows = await ingestPressFile(filePath, async (batch: NewDbRecord[]) => {
+          await insertRecords(tx, batch);
+        });
+      });
       await markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
