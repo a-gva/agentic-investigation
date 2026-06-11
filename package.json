@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "db:push": "drizzle-kit push",
-    "db:migrate": "bun run src/db/migrate.ts",
+    "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
     "etl": "pnpm db:migrate && bun run src/modules/etl/pipeline.ts --data-dir ./data",
