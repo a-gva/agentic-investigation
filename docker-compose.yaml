@@ -1,0 +1,20 @@
+name: agentic-investigation
+
+services:
+  investigation-pg:
+    build: ./postgres
+    container_name: investigation-pg
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./db/data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
