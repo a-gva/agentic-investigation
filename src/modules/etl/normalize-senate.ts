@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto';
 import type { NewDbRecord } from '../../db/schema.js';
+import {
+  cents,
+  dateStr,
+  fiscalYear as coerceFiscalYear,
+  meta,
+  str,
+  tags,
+} from './coerce.js';
 
 function hash(...parts: (string | number | null | undefined)[]): string {
   return createHash('sha256')
@@ -38,18 +46,20 @@ export function normalizeFiling(filing: any): NewDbRecord[] {
     out.push({
       source: 'senate',
       subSource: 'filing',
-      recordType: filingType,
-      date: postedDate,
-      fiscalYear,
-      entityName: registrantName,
+      recordType: str(filingType),
+      date: dateStr(postedDate),
+      fiscalYear: coerceFiscalYear(postedDate, fiscalYear),
+      entityName: str(registrantName),
       entityType: 'registrant',
-      entityState: filing.registrant?.state ?? null,
-      counterparty: clientName || null,
-      amountCents: parseCents(filing.income) ?? parseCents(filing.expenses),
-      description: null,
-      tags: JSON.stringify([]),
+      entityState: str(filing.registrant?.state),
+      counterparty: str(clientName),
+      amountCents: cents(
+        parseCents(filing.income) ?? parseCents(filing.expenses),
+      ),
+      description: '',
+      tags: tags(),
       rawHash: hash('senate', 'filing', filingUuid, '0'),
-      metadata: JSON.stringify({
+      metadata: meta({
         filing_uuid: filingUuid,
         filing_period: filing.filing_period,
         income: filing.income,
@@ -83,21 +93,22 @@ export function normalizeFiling(filing: any): NewDbRecord[] {
     out.push({
       source: 'senate',
       subSource: 'filing',
-      recordType: filingType,
-      date: postedDate,
-      fiscalYear,
-      entityName: registrantName,
+      recordType: str(filingType),
+      date: dateStr(postedDate),
+      fiscalYear: coerceFiscalYear(postedDate, fiscalYear),
+      entityName: str(registrantName),
       entityType: 'registrant',
-      entityState: filing.registrant?.state ?? null,
-      counterparty: clientName || null,
-      amountCents:
+      entityState: str(filing.registrant?.state),
+      counterparty: str(clientName),
+      amountCents: cents(
         i === 0
           ? (parseCents(filing.income) ?? parseCents(filing.expenses))
           : null,
-      description: description || null,
-      tags: JSON.stringify([issueCode].filter(Boolean)),
+      ),
+      description: str(description),
+      tags: tags(issueCode),
       rawHash: hash('senate', 'filing', filingUuid, String(i)),
-      metadata: JSON.stringify({
+      metadata: meta({
         filing_uuid: filingUuid,
         filing_period: filing.filing_period,
         income: filing.income,
@@ -137,28 +148,31 @@ export function normalizeContribution(report: any): NewDbRecord[] {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const item: any = items[i];
 
+    const itemDate = isoDate(item.date) ?? postedDate;
     out.push({
       source: 'senate',
       subSource: 'contribution',
-      recordType: filingType,
-      date: isoDate(item.date) ?? postedDate,
-      fiscalYear,
-      entityName: registrantName,
+      recordType: str(filingType),
+      date: dateStr(itemDate),
+      fiscalYear: coerceFiscalYear(itemDate, fiscalYear),
+      entityName: str(registrantName),
       entityType: 'registrant',
-      entityState: report.registrant?.state ?? null,
-      counterparty: lobbyistName || null,
-      amountCents: parseCents(item.amount),
-      description: [
-        item.contributor_name,
-        '→',
-        item.payee_name,
-        item.honoree_name ? `(${item.honoree_name})` : null,
-      ]
-        .filter(Boolean)
-        .join(' '),
-      tags: JSON.stringify([item.contribution_type].filter(Boolean)),
+      entityState: str(report.registrant?.state),
+      counterparty: str(lobbyistName),
+      amountCents: cents(parseCents(item.amount)),
+      description: str(
+        [
+          item.contributor_name,
+          '→',
+          item.payee_name,
+          item.honoree_name ? `(${item.honoree_name})` : null,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      ),
+      tags: tags(item.contribution_type),
       rawHash: hash('senate', 'contribution', filingUuid, String(i)),
-      metadata: JSON.stringify({
+      metadata: meta({
         filing_uuid: filingUuid,
         filing_period: report.filing_period,
         filer_type: report.filer_type,

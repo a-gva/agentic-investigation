@@ -2,6 +2,14 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import type { NewDbRecord } from '../../db/schema.js';
+import {
+  cents,
+  dateStr,
+  fiscalYear as coerceFiscalYear,
+  meta,
+  str,
+  tags,
+} from './coerce.js';
 
 function hash(...parts: (string | null | undefined)[]): string {
   return createHash('sha256')
@@ -48,18 +56,18 @@ export async function ingestPressFile(
     batch.push({
       source: 'congress_press',
       subSource: 'press',
-      recordType: member.chamber ?? null,
-      date,
-      fiscalYear: date ? Number(date.slice(0, 4)) || null : null,
-      entityName: member.name ?? null,
+      recordType: str(member.chamber),
+      date: dateStr(date),
+      fiscalYear: coerceFiscalYear(date),
+      entityName: str(member.name),
       entityType: 'member',
-      entityState: member.state ?? null,
-      counterparty: null,
-      amountCents: null,
-      description,
-      tags: JSON.stringify([member.party, member.chamber].filter(Boolean)),
+      entityState: str(member.state),
+      counterparty: '',
+      amountCents: cents(null),
+      description: str(description),
+      tags: tags(member.party, member.chamber),
       rawHash: hash('press', url),
-      metadata: JSON.stringify({
+      metadata: meta({
         url,
         bioguide_id: member.bioguide_id ?? null,
         party: member.party ?? null,
