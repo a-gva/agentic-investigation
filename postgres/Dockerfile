@@ -190,6 +190,26 @@ RUN set -eux; \
     \
     postgres --version
 
+# pgvector — compiled against the Postgres install above (PG 18)
+ARG PGVECTOR_VERSION=0.8.2
+RUN set -eux; \
+    apk add --no-cache --virtual .pgvector-build-deps \
+    git \
+    build-base \
+    clang19 \
+    llvm19-dev \
+    ; \
+    git clone --branch v${PGVECTOR_VERSION} --depth 1 \
+    https://github.com/pgvector/pgvector.git /tmp/pgvector; \
+    cd /tmp/pgvector; \
+    export LLVM_CONFIG="/usr/lib/llvm19/bin/llvm-config"; \
+    export CLANG=clang-19; \
+    make OPTFLAGS=""; \
+    make install; \
+    cd /; \
+    rm -rf /tmp/pgvector; \
+    apk del --no-network .pgvector-build-deps
+
 # make the sample config easier to munge (and "correct by default")
 RUN set -eux; \
     cp -v /usr/local/share/postgresql/postgresql.conf.sample /usr/local/share/postgresql/postgresql.conf.sample.orig; \
