@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   date,
+  integer,
   jsonb,
   numeric,
   pgTableCreator,
@@ -55,14 +56,14 @@ export const entities = createTable('entities', {
     .notNull()
     .unique()
     .$defaultFn(() => v7()),
-  canonicalId: text('canonical_id').primaryKey(),
+  canonicalId: text('canonical_id').notNull().unique(),
   rawName: text('raw_name').notNull(),
   source: text('source').notNull(),
   entityType: text('entity_type'),
   bioguideId: text('bioguide_id'),
   senateId: text('senate_id'),
   houseId: text('house_id'),
-  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export type Entity = typeof entities.$inferSelect;
@@ -87,7 +88,7 @@ export const stories = createTable('stories', {
   foiaRequests: text('foia_requests').default('[]'),
   recordIds: text('record_ids').default('[]'),
   evidenceLinks: text('evidence_links').default('[]'),
-  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export type Story = typeof stories.$inferSelect;
@@ -101,8 +102,8 @@ export const evidenceLinks = createTable('evidence_links', {
     .notNull()
     .unique()
     .$defaultFn(() => v7()),
-  storyId: text('story_id').references(() => stories.id),
-  recordId: text('record_id').references(() => records.id),
+  storyId: integer('story_id').references(() => stories.id),
+  recordId: integer('record_id').references(() => records.id),
   field: text('field'),
   excerpt: text('excerpt'),
   sourcePath: text('source_path'),
@@ -120,12 +121,12 @@ export const investigationLedger = createTable('investigation_ledger', {
     .notNull()
     .unique()
     .$defaultFn(() => v7()),
-  threadId: text('thread_id').primaryKey(),
+  threadId: text('thread_id').notNull().unique(),
   status: text('status', {
     enum: ['open', 'verified', 'cold', 'published'],
   }).default('open'),
   summary: text('summary'),
-  updatedAt: text('updated_at').default(sql`(datetime('now'))`),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export type InvestigationThread = typeof investigationLedger.$inferSelect;
@@ -140,8 +141,8 @@ export const agentRuns = createTable('agent_runs', {
     .unique()
     .$defaultFn(() => v7()),
   skillName: text('skill_name'),
-  startedAt: text('started_at').default(sql`(datetime('now'))`),
-  finishedAt: text('finished_at'),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  finishedAt: timestamp('finished_at'),
   inputsHash: text('inputs_hash'),
   outputPath: text('output_path'),
   tracePath: text('trace_path'),
@@ -161,9 +162,9 @@ export const etlRuns = createTable('etl_runs', {
     .$defaultFn(() => v7()),
   filePath: text('file_path').unique(),
   source: text('source'),
-  rowsWritten: smallint('rows_written').default(0),
-  startedAt: text('started_at').default(sql`(datetime('now'))`),
-  finishedAt: text('finished_at'),
+  rowsWritten: integer('rows_written').default(0),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  finishedAt: timestamp('finished_at'),
   status: text('status').default('running'),
 });
 

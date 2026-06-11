@@ -3,12 +3,13 @@ import { glob } from 'glob';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { openDB, type DB } from '../../db/index.js';
+import { env } from '../env/index.js';
 import type { NewDbRecord } from '../../db/schema.js';
 import { agentRuns, etlRuns, records } from '../../db/schema.js';
 import { ingestJsonFile } from './ingest-json.js';
 import { ingestPressFile } from './ingest-press.js';
 import { ingestXmlFile } from './ingest-xml.js';
-import { insertRecords } from './insert-records.js';
+import { insertRecords, type DbOrTx } from './insert-records.js';
 
 // --- CLI args ---
 const args = process.argv.slice(2);
@@ -17,7 +18,7 @@ function getArg(flag: string, fallback: string): string {
   return i !== -1 && args[i + 1] ? args[i + 1]! : fallback;
 }
 const dataDir = resolve(getArg('--data-dir', './data'));
-const dbPath = resolve(getArg('--db', './investigation.db'));
+const databaseUrl = env.DATABASE_URL;
 
 function log(msg: string) {
   process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${msg}\n`);
@@ -51,7 +52,7 @@ async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
   return row?.status === 'done';
 }
 
-async function markFileStart(db: DB, filePath: string, source: string) {
+async function markFileStart(db: DbOrTx, filePath: string, source: string) {
   await db
     .insert(etlRuns)
     .values({ filePath, source, rowsWritten: 0, status: 'running' })
@@ -65,7 +66,7 @@ async function markFileStart(db: DB, filePath: string, source: string) {
     });
 }
 
-async function markFileDone(db: DB, filePath: string, rowsWritten: number) {
+async function markFileDone(db: DbOrTx, filePath: string, rowsWritten: number) {
   await db
     .update(etlRuns)
     .set({ rowsWritten, finishedAt: sql`now()`, status: 'done' })
@@ -102,8 +103,8 @@ async function runSenateETL(db: DB): Promise<number> {
         rows = await ingestJsonFile(filePath, async (batch: NewDbRecord[]) => {
           await insertRecords(tx, batch);
         });
+        await markFileDone(tx, filePath, rows);
       });
-      await markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
     } catch (err) {
@@ -145,8 +146,8 @@ async function runHouseETL(db: DB): Promise<number> {
     let inserted = 0;
     await db.transaction(async (tx) => {
       inserted = await insertRecords(tx, batch);
+      await markFileDone(tx, key, inserted);
     });
-    await markFileDone(db, key, inserted);
     log(
       `  house files ${startIdx}–${startIdx + chunk.length - 1}: ${inserted} records (${errors} parse errors)`,
     );
@@ -188,8 +189,8 @@ async function runPressETL(db: DB): Promise<number> {
         rows = await ingestPressFile(filePath, async (batch: NewDbRecord[]) => {
           await insertRecords(tx, batch);
         });
+        await markFileDone(tx, filePath, rows);
       });
-      await markFileDone(db, filePath, rows);
       log(`    → ${rows} records`);
       total += rows;
     } catch (err) {
@@ -208,13 +209,13 @@ async function main() {
     process.exit(1);
   }
 
-  log(`Opening database at ${dbPath}`);
+  log(`Connecting to Postgres (${databaseUrl})`);
   const { db, close } = openDB();
   const runResult = await db
     .insert(agentRuns)
     .values({
       skillName: 'legislative-etl',
-      inputsHash: `${dataDir}::${dbPath}`,
+      inputsHash: `${dataDir}::${databaseUrl}`,
       status: 'running',
     })
     .returning({ id: agentRuns.id });

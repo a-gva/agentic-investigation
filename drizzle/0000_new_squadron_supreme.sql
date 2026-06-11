@@ -2,8 +2,8 @@ CREATE TABLE "agent_runs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"uuid" text NOT NULL,
 	"skill_name" text,
-	"started_at" text DEFAULT (datetime('now')),
-	"finished_at" text,
+	"started_at" timestamp DEFAULT now() NOT NULL,
+	"finished_at" timestamp,
 	"inputs_hash" text,
 	"output_path" text,
 	"trace_path" text,
@@ -14,15 +14,16 @@ CREATE TABLE "agent_runs" (
 CREATE TABLE "entities" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"uuid" text NOT NULL,
-	"canonical_id" text PRIMARY KEY NOT NULL,
+	"canonical_id" text NOT NULL,
 	"raw_name" text NOT NULL,
 	"source" text NOT NULL,
 	"entity_type" text,
 	"bioguide_id" text,
 	"senate_id" text,
 	"house_id" text,
-	"created_at" text DEFAULT (datetime('now')),
-	CONSTRAINT "entities_uuid_unique" UNIQUE("uuid")
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "entities_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "entities_canonical_id_unique" UNIQUE("canonical_id")
 );
 --> statement-breakpoint
 CREATE TABLE "etl_runs" (
@@ -30,9 +31,9 @@ CREATE TABLE "etl_runs" (
 	"uuid" text NOT NULL,
 	"file_path" text,
 	"source" text,
-	"rows_written" smallint DEFAULT 0,
-	"started_at" text DEFAULT (datetime('now')),
-	"finished_at" text,
+	"rows_written" integer DEFAULT 0,
+	"started_at" timestamp DEFAULT now() NOT NULL,
+	"finished_at" timestamp,
 	"status" text DEFAULT 'running',
 	CONSTRAINT "etl_runs_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "etl_runs_file_path_unique" UNIQUE("file_path")
@@ -41,8 +42,8 @@ CREATE TABLE "etl_runs" (
 CREATE TABLE "evidence_links" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"uuid" text NOT NULL,
-	"story_id" text,
-	"record_id" text,
+	"story_id" integer,
+	"record_id" integer,
 	"field" text,
 	"excerpt" text,
 	"source_path" text,
@@ -53,11 +54,12 @@ CREATE TABLE "evidence_links" (
 CREATE TABLE "investigation_ledger" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"uuid" text NOT NULL,
-	"thread_id" text PRIMARY KEY NOT NULL,
+	"thread_id" text NOT NULL,
 	"status" text DEFAULT 'open',
 	"summary" text,
-	"updated_at" text DEFAULT (datetime('now')),
-	CONSTRAINT "investigation_ledger_uuid_unique" UNIQUE("uuid")
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "investigation_ledger_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "investigation_ledger_thread_id_unique" UNIQUE("thread_id")
 );
 --> statement-breakpoint
 CREATE TABLE "records" (
@@ -99,7 +101,7 @@ CREATE TABLE "stories" (
 	"foia_requests" text DEFAULT '[]',
 	"record_ids" text DEFAULT '[]',
 	"evidence_links" text DEFAULT '[]',
-	"created_at" text DEFAULT (datetime('now')),
+	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "stories_uuid_unique" UNIQUE("uuid")
 );
 --> statement-breakpoint
