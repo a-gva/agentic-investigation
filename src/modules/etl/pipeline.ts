@@ -59,17 +59,23 @@ async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
   return row?.status === 'done';
 }
 
-async function markFileStart(db: DbOrTx, filePath: string, source: string) {
+async function markFileStart(
+  db: DbOrTx,
+  filePath: string,
+  source: string,
+  batch?: string,
+) {
   const key = toEtlFilePath(filePath);
   await db
     .insert(etlRuns)
-    .values({ filePath: key, source, rowsWritten: 0, status: 'running' })
+    .values({ filePath: key, source, batch, rowsWritten: 0, status: 'running' })
     .onConflictDoUpdate({
       target: etlRuns.filePath,
       set: {
         rowsWritten: 0,
         startedAt: sql`now()`,
         status: 'running',
+        ...(batch != null ? { batch } : {}),
       },
     });
 }
@@ -144,8 +150,10 @@ async function runHouseETL(db: DB): Promise<number> {
 
   let total = 0;
   let pending: string[] = [];
+  let fileCount = 0;
 
-  const flush = async (chunk: string[]) => {
+  const flush = async (chunk: string[], startIdx: number) => {
+    const batchId = `house:${startIdx}-${startIdx + chunk.length - 1}`;
     type ParsedFile = { filePath: string; rows: NewDbRecord[] };
     const parsed: ParsedFile[] = [];
     let skipped = 0;
@@ -156,7 +164,7 @@ async function runHouseETL(db: DB): Promise<number> {
         skipped++;
         continue;
       }
-      await markFileStart(db, filePath, 'house');
+      await markFileStart(db, filePath, 'house', batchId);
       try {
         parsed.push({ filePath, rows: ingestXmlFile(filePath) });
       } catch (err) {
@@ -183,7 +191,7 @@ async function runHouseETL(db: DB): Promise<number> {
       }
     });
     log(
-      `  house ${parsed.length} files: ${inserted} records (${skipped} skipped, ${errors} parse errors)`,
+      `  house batch ${batchId}: ${parsed.length} files, ${inserted} records (${skipped} skipped, ${errors} parse errors)`,
     );
     return inserted;
   };
@@ -191,12 +199,13 @@ async function runHouseETL(db: DB): Promise<number> {
   for (const f of files) {
     pending.push(f);
     if (pending.length >= BATCH) {
-      total += await flush(pending);
+      total += await flush(pending, fileCount);
+      fileCount += pending.length;
       pending = [];
     }
   }
   if (pending.length > 0) {
-    total += await flush(pending);
+    total += await flush(pending, fileCount);
   }
 
   return total;

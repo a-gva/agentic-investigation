@@ -162,6 +162,7 @@ export const etlRuns = createTable('etl_runs', {
     .$defaultFn(() => v7()),
   filePath: text('file_path').unique(),
   source: text('source'),
+  batch: text('batch'),
   rowsWritten: integer('rows_written').default(0),
   startedAt: timestamp('started_at').defaultNow().notNull(),
   finishedAt: timestamp('finished_at'),
