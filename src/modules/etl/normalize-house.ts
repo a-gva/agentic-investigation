@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { NewDbRecord } from '../../db/schema.js';
+import type { NormalizedRecord } from '../../db/schema.js';
 import {
   cents,
   dateStr,
@@ -33,8 +33,8 @@ function forceArray<T>(val: T | T[] | null | undefined): T[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalizeHouseXml(parsed: any, fileName: string): NewDbRecord[] {
-  const out: NewDbRecord[] = [];
+export function normalizeHouseXml(parsed: any, fileName: string): NormalizedRecord[] {
+  const out: NormalizedRecord[] = [];
   const doc = parsed.LOBBYINGDISCLOSURE2 ?? parsed;
 
   const orgName = trim(doc.organizationName) ?? '';

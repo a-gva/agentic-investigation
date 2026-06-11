@@ -4,8 +4,8 @@ import { records } from '../../db/schema.js';
 
 export type DbOrTx = DB | Parameters<Parameters<DB['transaction']>[0]>[0];
 
-// Postgres allows ~65535 bound parameters per statement; records has 18 columns.
-const COLS = 18;
+// Postgres allows ~65535 bound parameters per statement; records has 19 columns.
+const COLS = 19;
 const MAX_ROWS = Math.floor(65535 / COLS);
 
 export async function insertRecords(

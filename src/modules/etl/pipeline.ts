@@ -1,11 +1,12 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { glob } from 'glob';
 import { existsSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { openDB, type DB } from '../../db/index.js';
 import { env } from '../env/index.js';
 import type { NewDbRecord } from '../../db/schema.js';
 import { agentRuns, etlRuns, records } from '../../db/schema.js';
+import { setDataDir, toEtlFilePath } from './etl-file-path.js';
 import { ingestJsonFile } from './ingest-json.js';
 import { ingestPressFile } from './ingest-press.js';
 import { ingestXmlFile } from './ingest-xml.js';
@@ -42,12 +43,6 @@ function perfLog(phase: string, elapsedMs: number, rows?: number) {
 }
 
 // --- Resumability helpers ---
-
-/** Project-root-relative path stored in etl_runs (e.g. /data/senate/2022/...). */
-function toEtlFilePath(filePath: string): string {
-  const rel = relative(dataDir, resolve(filePath)).replace(/\\/g, '/');
-  return `/data/${rel}`;
-}
 
 async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
   const key = toEtlFilePath(filePath);
@@ -250,6 +245,8 @@ async function main() {
     log(`ERROR: data directory not found: ${dataDir}`);
     process.exit(1);
   }
+
+  setDataDir(dataDir);
 
   log(`Connecting to Postgres (${databaseUrl})`);
   const { db, close } = openDB();

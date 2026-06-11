@@ -36,6 +36,7 @@ export const records = createTable('records', {
     .$type<string[]>()
     .default(sql`'[]'::jsonb`),
   rawHash: text('raw_hash').notNull().unique(),
+  filePath: text('file_path').notNull(),
   riskScore: smallint('risk_score'),
   chunkIndex: smallint('chunk_index').default(0),
   metadata: jsonb('metadata')
@@ -47,6 +48,7 @@ export const records = createTable('records', {
 
 export type DbRecord = typeof records.$inferSelect;
 export type NewDbRecord = typeof records.$inferInsert;
+export type NormalizedRecord = Omit<NewDbRecord, 'filePath'>;
 
 // ─── entities ────────────────────────────────────────────────────────────────
 
