@@ -1,7 +1,7 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { glob } from 'glob';
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { openDB, type DB } from '../../db/index.js';
 import { env } from '../env/index.js';
 import type { NewDbRecord } from '../../db/schema.js';
@@ -43,41 +43,67 @@ function perfLog(phase: string, elapsedMs: number, rows?: number) {
 
 // --- Resumability helpers ---
 
+/** Project-root-relative path stored in etl_runs (e.g. /data/senate/2022/...). */
+function toEtlFilePath(filePath: string): string {
+  const rel = relative(dataDir, resolve(filePath)).replace(/\\/g, '/');
+  return `/data/${rel}`;
+}
+
 async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
+  const key = toEtlFilePath(filePath);
   const [row] = await db
     .select({ status: etlRuns.status })
     .from(etlRuns)
-    .where(eq(etlRuns.filePath, filePath))
+    .where(eq(etlRuns.filePath, key))
     .limit(1);
   return row?.status === 'done';
 }
 
-async function markFileStart(db: DbOrTx, filePath: string, source: string) {
+async function markFileStart(
+  db: DbOrTx,
+  filePath: string,
+  source: string,
+  batch?: string,
+) {
+  const key = toEtlFilePath(filePath);
   await db
     .insert(etlRuns)
-    .values({ filePath, source, rowsWritten: 0, status: 'running' })
+    .values({ filePath: key, source, batch, rowsWritten: 0, status: 'running' })
     .onConflictDoUpdate({
       target: etlRuns.filePath,
       set: {
         rowsWritten: 0,
         startedAt: sql`now()`,
         status: 'running',
+        ...(batch != null ? { batch } : {}),
       },
     });
 }
 
 async function markFileDone(db: DbOrTx, filePath: string, rowsWritten: number) {
+  const key = toEtlFilePath(filePath);
   await db
     .update(etlRuns)
     .set({ rowsWritten, finishedAt: sql`now()`, status: 'done' })
-    .where(eq(etlRuns.filePath, filePath));
+    .where(eq(etlRuns.filePath, key));
 }
 
 async function markFileError(db: DB, filePath: string) {
+  const key = toEtlFilePath(filePath);
   await db
     .update(etlRuns)
     .set({ status: 'error', finishedAt: sql`now()` })
-    .where(eq(etlRuns.filePath, filePath));
+    .where(eq(etlRuns.filePath, key));
+}
+
+async function loadDonePaths(db: DB, source: string): Promise<Set<string>> {
+  const rows = await db
+    .select({ filePath: etlRuns.filePath })
+    .from(etlRuns)
+    .where(and(eq(etlRuns.source, source), eq(etlRuns.status, 'done')));
+  return new Set(
+    rows.map((r) => r.filePath).filter((p): p is string => p != null),
+  );
 }
 
 // --- Senate JSON ---
@@ -120,36 +146,52 @@ async function runSenateETL(db: DB): Promise<number> {
 async function runHouseETL(db: DB): Promise<number> {
   const files = (await glob(`${dataDir}/house/**/*.xml`)).sort();
   const BATCH = 1000;
+  const donePaths = await loadDonePaths(db, 'house');
 
   let total = 0;
-  let fileCount = 0;
   let pending: string[] = [];
+  let fileCount = 0;
 
   const flush = async (chunk: string[], startIdx: number) => {
-    const key = `house:batch:${startIdx}`;
-    if (await alreadyDone(db, key)) {
-      log(`  skip (done) house batch ${startIdx}`);
-      return 0;
-    }
-    await markFileStart(db, key, 'house');
-
-    const batch: NewDbRecord[] = [];
+    const batchId = `house:${startIdx}-${startIdx + chunk.length - 1}`;
+    type ParsedFile = { filePath: string; rows: NewDbRecord[] };
+    const parsed: ParsedFile[] = [];
+    let skipped = 0;
     let errors = 0;
-    for (const f of chunk) {
+
+    for (const filePath of chunk) {
+      if (donePaths.has(toEtlFilePath(filePath))) {
+        skipped++;
+        continue;
+      }
+      await markFileStart(db, filePath, 'house', batchId);
       try {
-        batch.push(...ingestXmlFile(f));
-      } catch {
+        parsed.push({ filePath, rows: ingestXmlFile(filePath) });
+      } catch (err) {
+        log(`    ERROR parsing ${filePath}: ${err}`);
+        await markFileError(db, filePath);
         errors++;
       }
     }
 
+    if (parsed.length === 0) {
+      if (skipped > 0) {
+        log(`  skip (done) ${skipped} house files`);
+      }
+      return 0;
+    }
+
+    const batch = parsed.flatMap(({ rows }) => rows);
     let inserted = 0;
     await db.transaction(async (tx) => {
       inserted = await insertRecords(tx, batch);
-      await markFileDone(tx, key, inserted);
+      for (const { filePath, rows } of parsed) {
+        await markFileDone(tx, filePath, rows.length);
+        donePaths.add(toEtlFilePath(filePath));
+      }
     });
     log(
-      `  house files ${startIdx}–${startIdx + chunk.length - 1}: ${inserted} records (${errors} parse errors)`,
+      `  house batch ${batchId}: ${parsed.length} files, ${inserted} records (${skipped} skipped, ${errors} parse errors)`,
     );
     return inserted;
   };
