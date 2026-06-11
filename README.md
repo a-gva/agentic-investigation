@@ -20,8 +20,10 @@ This is a project to investigate the use of agentic AI for investigative journal
 
 ### Create a PostgreSQL database
 
+The custom Postgres image includes [pgvector](https://github.com/pgvector/pgvector) for embedding search.
+
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 ### Setup environment variables
