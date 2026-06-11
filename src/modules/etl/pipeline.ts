@@ -1,7 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { glob } from 'glob';
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { openDB, type DB } from '../../db/index.js';
 import { env } from '../env/index.js';
 import type { NewDbRecord } from '../../db/schema.js';
@@ -43,19 +43,27 @@ function perfLog(phase: string, elapsedMs: number, rows?: number) {
 
 // --- Resumability helpers ---
 
+/** Project-root-relative path stored in etl_runs (e.g. /data/senate/2022/...). */
+function toEtlFilePath(filePath: string): string {
+  const rel = relative(dataDir, resolve(filePath)).replace(/\\/g, '/');
+  return `/data/${rel}`;
+}
+
 async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
+  const key = toEtlFilePath(filePath);
   const [row] = await db
     .select({ status: etlRuns.status })
     .from(etlRuns)
-    .where(eq(etlRuns.filePath, filePath))
+    .where(eq(etlRuns.filePath, key))
     .limit(1);
   return row?.status === 'done';
 }
 
 async function markFileStart(db: DbOrTx, filePath: string, source: string) {
+  const key = toEtlFilePath(filePath);
   await db
     .insert(etlRuns)
-    .values({ filePath, source, rowsWritten: 0, status: 'running' })
+    .values({ filePath: key, source, rowsWritten: 0, status: 'running' })
     .onConflictDoUpdate({
       target: etlRuns.filePath,
       set: {
@@ -67,17 +75,19 @@ async function markFileStart(db: DbOrTx, filePath: string, source: string) {
 }
 
 async function markFileDone(db: DbOrTx, filePath: string, rowsWritten: number) {
+  const key = toEtlFilePath(filePath);
   await db
     .update(etlRuns)
     .set({ rowsWritten, finishedAt: sql`now()`, status: 'done' })
-    .where(eq(etlRuns.filePath, filePath));
+    .where(eq(etlRuns.filePath, key));
 }
 
 async function markFileError(db: DB, filePath: string) {
+  const key = toEtlFilePath(filePath);
   await db
     .update(etlRuns)
     .set({ status: 'error', finishedAt: sql`now()` })
-    .where(eq(etlRuns.filePath, filePath));
+    .where(eq(etlRuns.filePath, key));
 }
 
 async function loadDonePaths(db: DB, source: string): Promise<Set<string>> {
@@ -142,7 +152,7 @@ async function runHouseETL(db: DB): Promise<number> {
     let errors = 0;
 
     for (const filePath of chunk) {
-      if (donePaths.has(filePath)) {
+      if (donePaths.has(toEtlFilePath(filePath))) {
         skipped++;
         continue;
       }
@@ -169,7 +179,7 @@ async function runHouseETL(db: DB): Promise<number> {
       inserted = await insertRecords(tx, batch);
       for (const { filePath, rows } of parsed) {
         await markFileDone(tx, filePath, rows.length);
-        donePaths.add(filePath);
+        donePaths.add(toEtlFilePath(filePath));
       }
     });
     log(
