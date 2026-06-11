@@ -1,174 +1,201 @@
 {
-  "version": "6",
-  "dialect": "sqlite",
-  "id": "2a942e6f-a94c-437e-a8e5-f0efd75939b1",
+  "id": "0846f748-d411-410b-ad8a-812a2030f705",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "agent_runs": {
+    "public.agent_runs": {
       "name": "agent_runs",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "skill_name": {
           "name": "skill_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "started_at": {
           "name": "started_at",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "(datetime('now'))"
         },
         "finished_at": {
           "name": "finished_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "inputs_hash": {
           "name": "inputs_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "output_path": {
           "name": "output_path",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "trace_path": {
           "name": "trace_path",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'running'"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "agent_runs_uuid_unique": {
+          "name": "agent_runs_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "entities": {
+    "public.entities": {
       "name": "entities",
+      "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "canonical_id": {
           "name": "canonical_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
         },
         "raw_name": {
           "name": "raw_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "source": {
           "name": "source",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "entity_type": {
           "name": "entity_type",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "bioguide_id": {
           "name": "bioguide_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "senate_id": {
           "name": "senate_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "house_id": {
           "name": "house_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "(datetime('now'))"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "entities_uuid_unique": {
+          "name": "entities_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "etl_runs": {
+    "public.etl_runs": {
       "name": "etl_runs",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "file_path": {
           "name": "file_path",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "source": {
           "name": "source",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "rows_written": {
           "name": "rows_written",
-          "type": "integer",
+          "type": "smallint",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": 0
         },
         "started_at": {
@@ -176,90 +203,96 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "(datetime('now'))"
         },
         "finished_at": {
           "name": "finished_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'running'"
         }
       },
-      "indexes": {
-        "etl_runs_file_path_unique": {
-          "name": "etl_runs_file_path_unique",
-          "columns": [
-            "file_path"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "etl_runs_uuid_unique": {
+          "name": "etl_runs_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        },
+        "etl_runs_file_path_unique": {
+          "name": "etl_runs_file_path_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_path"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "evidence_links": {
+    "public.evidence_links": {
       "name": "evidence_links",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "story_id": {
           "name": "story_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "record_id": {
           "name": "record_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "field": {
           "name": "field",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "excerpt": {
           "name": "excerpt",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "source_path": {
           "name": "source_path",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "line_or_uuid": {
           "name": "line_or_uuid",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         }
       },
       "indexes": {},
@@ -292,241 +325,276 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "evidence_links_uuid_unique": {
+          "name": "evidence_links_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "investigation_ledger": {
+    "public.investigation_ledger": {
       "name": "investigation_ledger",
+      "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "thread_id": {
           "name": "thread_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'open'"
         },
         "summary": {
           "name": "summary",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "(datetime('now'))"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "investigation_ledger_uuid_unique": {
+          "name": "investigation_ledger_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "records": {
+    "public.records": {
       "name": "records",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "source": {
           "name": "source",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "sub_source": {
           "name": "sub_source",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "record_type": {
           "name": "record_type",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "date": {
           "name": "date",
-          "type": "text",
+          "type": "date",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "fiscal_year": {
           "name": "fiscal_year",
-          "type": "integer",
+          "type": "smallint",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "entity_name": {
           "name": "entity_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "entity_type": {
           "name": "entity_type",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "entity_state": {
           "name": "entity_state",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "counterparty": {
           "name": "counterparty",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "amount_cents": {
           "name": "amount_cents",
-          "type": "integer",
+          "type": "numeric",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "tags": {
           "name": "tags",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "'[]'"
+          "default": "'[]'::jsonb"
         },
         "raw_hash": {
           "name": "raw_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "risk_score": {
           "name": "risk_score",
-          "type": "real",
+          "type": "smallint",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "chunk_index": {
           "name": "chunk_index",
-          "type": "integer",
+          "type": "smallint",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": 0
         },
         "metadata": {
           "name": "metadata",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "'{}'"
+          "default": "'{}'::jsonb"
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "(datetime('now'))"
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
-      "indexes": {
-        "records_raw_hash_unique": {
-          "name": "records_raw_hash_unique",
-          "columns": [
-            "raw_hash"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "records_uuid_unique": {
+          "name": "records_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        },
+        "records_raw_hash_unique": {
+          "name": "records_raw_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "raw_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "stories": {
+    "public.stories": {
       "name": "stories",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "story_type": {
           "name": "story_type",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "headline": {
           "name": "headline",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "confidence": {
           "name": "confidence",
-          "type": "real",
+          "type": "numeric",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "newsworthiness": {
           "name": "newsworthiness",
-          "type": "real",
+          "type": "numeric",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "actors": {
           "name": "actors",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'[]'"
         },
         "financial": {
@@ -534,7 +602,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'{}'"
         },
         "timeline": {
@@ -542,7 +609,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'[]'"
         },
         "legal": {
@@ -550,7 +616,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'[]'"
         },
         "foia_requests": {
@@ -558,7 +623,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'[]'"
         },
         "record_ids": {
@@ -566,7 +630,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'[]'"
         },
         "evidence_links": {
@@ -574,7 +637,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'[]'"
         },
         "created_at": {
@@ -582,25 +644,35 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "(datetime('now'))"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "stories_uuid_unique": {
+          "name": "stories_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
-  "views": {},
   "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
+    "tables": {}
   }
 }

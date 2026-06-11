@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { NewRecord } from '../../db/schema.js';
+import type { NewDbRecord } from '../../db/schema.js';
 
 function hash(...parts: (string | number | null | undefined)[]): string {
   return createHash('sha256')
@@ -20,8 +20,8 @@ function isoDate(dt: string | null | undefined): string | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalizeFiling(filing: any): NewRecord[] {
-  const out: NewRecord[] = [];
+export function normalizeFiling(filing: any): NewDbRecord[] {
+  const out: NewDbRecord[] = [];
   const registrantName: string = filing.registrant?.name ?? '';
   const clientName: string = filing.client?.name ?? '';
   const filingUuid: string = filing.filing_uuid ?? '';
@@ -117,8 +117,8 @@ export function normalizeFiling(filing: any): NewRecord[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalizeContribution(report: any): NewRecord[] {
-  const out: NewRecord[] = [];
+export function normalizeContribution(report: any): NewDbRecord[] {
+  const out: NewDbRecord[] = [];
   const filingUuid: string = report.filing_uuid ?? '';
   const fiscalYear: number =
     Number(report.filing_year) || new Date().getFullYear();

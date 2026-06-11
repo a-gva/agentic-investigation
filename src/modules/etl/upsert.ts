@@ -1,5 +1,5 @@
 import type { DB } from '../../db/index.js';
-import type { NewRecord } from '../../db/schema.js';
+import type { NewDbRecord } from '../../db/schema.js';
 import { records } from '../../db/schema.js';
 
 // SQLite allows at most 32766 bound variables per statement.
@@ -8,16 +8,15 @@ const COLS = 18;
 const MAX_ROWS = Math.floor(32766 / COLS);
 
 export function makeUpsert(db: DB) {
-  return async (rows: NewRecord[]): Promise<number> => {
+  return async (rows: NewDbRecord[]): Promise<number> => {
     let inserted = 0;
     for (let i = 0; i < rows.length; i += MAX_ROWS) {
       const chunk = rows.slice(i, i + MAX_ROWS);
       const result = await db
         .insert(records)
         .values(chunk)
-        .onConflictDoNothing({ target: records.rawHash })
-        .run();
-      inserted += result.rowsAffected;
+        .onConflictDoNothing({ target: records.rawHash });
+      inserted += result.rowCount ?? 0;
     }
     return inserted;
   };

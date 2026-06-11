@@ -3,7 +3,7 @@ import { glob } from 'glob';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { openDB, type DB } from '../../db/index.js';
-import type { NewRecord } from '../../db/schema.js';
+import type { NewDbRecord } from '../../db/schema.js';
 import { agentRuns, etlRuns, records } from '../../db/schema.js';
 import { ingestJsonFile } from './ingest-json.js';
 import { ingestPressFile } from './ingest-press.js';
@@ -43,11 +43,11 @@ function perfLog(phase: string, elapsedMs: number, rows?: number) {
 // --- Resumability helpers ---
 
 async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
-  const row = await db
+  const [row] = await db
     .select({ status: etlRuns.status })
     .from(etlRuns)
     .where(eq(etlRuns.filePath, filePath))
-    .get();
+    .limit(1);
   return row?.status === 'done';
 }
 
@@ -59,27 +59,24 @@ async function markFileStart(db: DB, filePath: string, source: string) {
       target: etlRuns.filePath,
       set: {
         rowsWritten: 0,
-        startedAt: sql`(datetime('now'))`,
+        startedAt: sql`now()`,
         status: 'running',
       },
-    })
-    .run();
+    });
 }
 
 async function markFileDone(db: DB, filePath: string, rowsWritten: number) {
   await db
     .update(etlRuns)
-    .set({ rowsWritten, finishedAt: sql`(datetime('now'))`, status: 'done' })
-    .where(eq(etlRuns.filePath, filePath))
-    .run();
+    .set({ rowsWritten, finishedAt: sql`now()`, status: 'done' })
+    .where(eq(etlRuns.filePath, filePath));
 }
 
 async function markFileError(db: DB, filePath: string) {
   await db
     .update(etlRuns)
-    .set({ status: 'error', finishedAt: sql`(datetime('now'))` })
-    .where(eq(etlRuns.filePath, filePath))
-    .run();
+    .set({ status: 'error', finishedAt: sql`now()` })
+    .where(eq(etlRuns.filePath, filePath));
 }
 
 // --- Senate JSON ---
@@ -103,7 +100,7 @@ async function runSenateETL(db: DB): Promise<number> {
     try {
       const rows = await ingestJsonFile(
         filePath,
-        async (batch: NewRecord[]) => {
+        async (batch: NewDbRecord[]) => {
           await upsert(batch);
         },
       );
@@ -137,7 +134,7 @@ async function runHouseETL(db: DB): Promise<number> {
     }
     await markFileStart(db, key, 'house');
 
-    const batch: NewRecord[] = [];
+    const batch: NewDbRecord[] = [];
     let errors = 0;
     for (const f of chunk) {
       try {
@@ -188,7 +185,7 @@ async function runPressETL(db: DB): Promise<number> {
     try {
       const rows = await ingestPressFile(
         filePath,
-        async (batch: NewRecord[]) => {
+        async (batch: NewDbRecord[]) => {
           await upsert(batch);
         },
       );
@@ -212,7 +209,7 @@ async function main() {
   }
 
   log(`Opening database at ${dbPath}`);
-  const { db, close } = openDB(dbPath);
+  const { db, close } = openDB();
   const runResult = await db
     .insert(agentRuns)
     .values({
@@ -220,8 +217,11 @@ async function main() {
       inputsHash: `${dataDir}::${dbPath}`,
       status: 'running',
     })
-    .run();
-  const runId = Number(runResult.lastInsertRowid);
+    .returning({ id: agentRuns.id });
+  const runId = runResult[0]?.id;
+  if (runId == null) {
+    throw new Error('Failed to create agent run record');
+  }
 
   const pipelineStart = performance.now();
 
@@ -250,16 +250,14 @@ async function main() {
 
   await db
     .update(agentRuns)
-    .set({ status: 'done', finishedAt: sql`(datetime('now'))` })
-    .where(eq(agentRuns.id, runId))
-    .run();
+    .set({ status: 'done', finishedAt: sql`now()` })
+    .where(eq(agentRuns.id, runId));
 
   const counts = await db
     .select({ source: records.source, n: sql<number>`count(*)` })
     .from(records)
     .groupBy(records.source)
-    .orderBy(records.source)
-    .all();
+    .orderBy(records.source);
 
   log('Record counts by source:');
   for (const row of counts) log(`  ${row.source}: ${row.n}`);

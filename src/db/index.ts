@@ -1,15 +1,13 @@
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { env } from '../modules/env';
 
-export const dbFileName = 'investigation.db';
+const { DATABASE_URL } = env;
 
-const client = createClient({ url: `file:${dbFileName}` });
-export const db = drizzle(client);
+export const openDB = () => {
+  const db = drizzle(DATABASE_URL);
+  return { db, close: () => db.$client.end() };
+};
 
-export type DB = typeof db;
+export type DB = ReturnType<typeof openDB>['db'];
 
-export function openDB(dbPath: string) {
-  const client = createClient({ url: `file:${dbPath}` });
-  const db = drizzle(client);
-  return { db, close: () => client.close() };
-}
+export const db = drizzle(DATABASE_URL);
