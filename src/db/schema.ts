@@ -1,58 +1,86 @@
 import { sql } from 'drizzle-orm';
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  date,
+  integer,
+  jsonb,
+  numeric,
+  pgTableCreator,
+  serial,
+  smallint,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
+import { v7 } from 'uuid';
 
+export const createTable = pgTableCreator((name) => name);
 // ─── records ─────────────────────────────────────────────────────────────────
 
-export const records = sqliteTable('records', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  source: text('source', {
-    enum: ['senate', 'house', 'congress_press'],
-  }).notNull(),
+export const records = createTable('records', {
+  id: serial('id').primaryKey(),
+  uuid: text('uuid')
+    .notNull()
+    .unique()
+    .$defaultFn(() => v7()),
+  source: text('source').notNull(),
   subSource: text('sub_source').notNull(),
-  recordType: text('record_type'),
-  date: text('date'),
-  fiscalYear: integer('fiscal_year'),
-  entityName: text('entity_name'),
-  entityType: text('entity_type'),
-  entityState: text('entity_state'),
-  counterparty: text('counterparty'),
-  amountCents: integer('amount_cents'),
-  description: text('description'),
-  tags: text('tags').default('[]'),
+  recordType: text('record_type').notNull(),
+  date: date('date').notNull(),
+  fiscalYear: smallint('fiscal_year').notNull(),
+  entityName: text('entity_name').notNull(),
+  entityType: text('entity_type').notNull(),
+  entityState: text('entity_state').notNull(),
+  counterparty: text('counterparty').notNull(),
+  amountCents: numeric('amount_cents').notNull(),
+  description: text('description').notNull(),
+  tags: jsonb('tags')
+    .$type<string[]>()
+    .default(sql`'[]'::jsonb`),
   rawHash: text('raw_hash').notNull().unique(),
-  riskScore: real('risk_score'),
-  chunkIndex: integer('chunk_index').default(0),
-  metadata: text('metadata').default('{}'),
-  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  riskScore: smallint('risk_score'),
+  chunkIndex: smallint('chunk_index').default(0),
+  metadata: jsonb('metadata')
+    .$type<Record<string, unknown>>()
+    .default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export type Record = typeof records.$inferSelect;
-export type NewRecord = typeof records.$inferInsert;
+export type DbRecord = typeof records.$inferSelect;
+export type NewDbRecord = typeof records.$inferInsert;
 
 // ─── entities ────────────────────────────────────────────────────────────────
 
-export const entities = sqliteTable('entities', {
-  canonicalId: integer('canonical_id').primaryKey({ autoIncrement: true }),
+export const entities = createTable('entities', {
+  id: serial('id').primaryKey(),
+  uuid: text('uuid')
+    .notNull()
+    .unique()
+    .$defaultFn(() => v7()),
+  canonicalId: text('canonical_id').notNull().unique(),
   rawName: text('raw_name').notNull(),
   source: text('source').notNull(),
   entityType: text('entity_type'),
   bioguideId: text('bioguide_id'),
   senateId: text('senate_id'),
   houseId: text('house_id'),
-  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export type Entity = typeof entities.$inferSelect;
 export type NewEntity = typeof entities.$inferInsert;
 
-// ─── stories ─────────────────────────────────────────────────────────────────
+// // ─── stories ─────────────────────────────────────────────────────────────────
 
-export const stories = sqliteTable('stories', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const stories = createTable('stories', {
+  id: serial('id').primaryKey(),
+  uuid: text('uuid')
+    .notNull()
+    .unique()
+    .$defaultFn(() => v7()),
   storyType: text('story_type'),
   headline: text('headline'),
-  confidence: real('confidence'),
-  newsworthiness: real('newsworthiness'),
+  confidence: numeric('confidence'),
+  newsworthiness: numeric('newsworthiness'),
   actors: text('actors').default('[]'),
   financial: text('financial').default('{}'),
   timeline: text('timeline').default('[]'),
@@ -60,16 +88,20 @@ export const stories = sqliteTable('stories', {
   foiaRequests: text('foia_requests').default('[]'),
   recordIds: text('record_ids').default('[]'),
   evidenceLinks: text('evidence_links').default('[]'),
-  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export type Story = typeof stories.$inferSelect;
 export type NewStory = typeof stories.$inferInsert;
 
-// ─── evidence_links ───────────────────────────────────────────────────────────
+// // ─── evidence_links ───────────────────────────────────────────────────────────
 
-export const evidenceLinks = sqliteTable('evidence_links', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const evidenceLinks = createTable('evidence_links', {
+  id: serial('id').primaryKey(),
+  uuid: text('uuid')
+    .notNull()
+    .unique()
+    .$defaultFn(() => v7()),
   storyId: integer('story_id').references(() => stories.id),
   recordId: integer('record_id').references(() => records.id),
   field: text('field'),
@@ -81,27 +113,36 @@ export const evidenceLinks = sqliteTable('evidence_links', {
 export type EvidenceLink = typeof evidenceLinks.$inferSelect;
 export type NewEvidenceLink = typeof evidenceLinks.$inferInsert;
 
-// ─── investigation_ledger ─────────────────────────────────────────────────────
+// // ─── investigation_ledger ─────────────────────────────────────────────────────
 
-export const investigationLedger = sqliteTable('investigation_ledger', {
-  threadId: text('thread_id').primaryKey(),
+export const investigationLedger = createTable('investigation_ledger', {
+  id: serial('id').primaryKey(),
+  uuid: text('uuid')
+    .notNull()
+    .unique()
+    .$defaultFn(() => v7()),
+  threadId: text('thread_id').notNull().unique(),
   status: text('status', {
     enum: ['open', 'verified', 'cold', 'published'],
   }).default('open'),
   summary: text('summary'),
-  updatedAt: text('updated_at').default(sql`(datetime('now'))`),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export type InvestigationThread = typeof investigationLedger.$inferSelect;
 export type NewInvestigationThread = typeof investigationLedger.$inferInsert;
 
-// ─── agent_runs ───────────────────────────────────────────────────────────────
+// // ─── agent_runs ───────────────────────────────────────────────────────────────
 
-export const agentRuns = sqliteTable('agent_runs', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const agentRuns = createTable('agent_runs', {
+  id: serial('id').primaryKey(),
+  uuid: text('uuid')
+    .notNull()
+    .unique()
+    .$defaultFn(() => v7()),
   skillName: text('skill_name'),
-  startedAt: text('started_at').default(sql`(datetime('now'))`),
-  finishedAt: text('finished_at'),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  finishedAt: timestamp('finished_at'),
   inputsHash: text('inputs_hash'),
   outputPath: text('output_path'),
   tracePath: text('trace_path'),
@@ -111,15 +152,19 @@ export const agentRuns = sqliteTable('agent_runs', {
 export type AgentRun = typeof agentRuns.$inferSelect;
 export type NewAgentRun = typeof agentRuns.$inferInsert;
 
-// ─── etl_runs ────────────────────────────────────────────────────────────────
+// // ─── etl_runs ────────────────────────────────────────────────────────────────
 
-export const etlRuns = sqliteTable('etl_runs', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const etlRuns = createTable('etl_runs', {
+  id: serial('id').primaryKey(),
+  uuid: text('uuid')
+    .notNull()
+    .unique()
+    .$defaultFn(() => v7()),
   filePath: text('file_path').unique(),
   source: text('source'),
   rowsWritten: integer('rows_written').default(0),
-  startedAt: text('started_at').default(sql`(datetime('now'))`),
-  finishedAt: text('finished_at'),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  finishedAt: timestamp('finished_at'),
   status: text('status').default('running'),
 });
 

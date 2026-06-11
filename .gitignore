@@ -151,3 +151,6 @@ data.zip
 investigation.db*
 *.db-shm
 *.db-wal
+
+# PostgreSQL database
+postgres/data/

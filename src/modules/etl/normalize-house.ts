@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto';
-import type { NewRecord } from '../../db/schema.js';
+import type { NewDbRecord } from '../../db/schema.js';
+import {
+  cents,
+  dateStr,
+  fiscalYear as coerceFiscalYear,
+  meta,
+  str,
+  tags,
+} from './coerce.js';
 
 function hash(...parts: (string | number | null | undefined)[]): string {
   return createHash('sha256')
@@ -25,8 +33,8 @@ function forceArray<T>(val: T | T[] | null | undefined): T[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalizeHouseXml(parsed: any, fileName: string): NewRecord[] {
-  const out: NewRecord[] = [];
+export function normalizeHouseXml(parsed: any, fileName: string): NewDbRecord[] {
+  const out: NewDbRecord[] = [];
   const doc = parsed.LOBBYINGDISCLOSURE2 ?? parsed;
 
   const orgName = trim(doc.organizationName) ?? '';
@@ -55,18 +63,20 @@ export function normalizeHouseXml(parsed: any, fileName: string): NewRecord[] {
     out.push({
       source: 'house',
       subSource: 'filing',
-      recordType: reportType,
-      date: isoDate,
-      fiscalYear: reportYear,
-      entityName: orgName || null,
+      recordType: str(reportType),
+      date: dateStr(isoDate),
+      fiscalYear: coerceFiscalYear(isoDate, reportYear),
+      entityName: str(orgName),
       entityType: 'registrant',
-      entityState: null,
-      counterparty: clientName || null,
-      amountCents: parseCents(doc.income) ?? parseCents(doc.expenses),
-      description: null,
-      tags: JSON.stringify([]),
+      entityState: '',
+      counterparty: str(clientName),
+      amountCents: cents(
+        parseCents(doc.income) ?? parseCents(doc.expenses),
+      ),
+      description: '',
+      tags: tags(),
       rawHash: hash('house', 'filing', houseId ?? fileName, '0'),
-      metadata: JSON.stringify({
+      metadata: meta({
         senate_id: senateId,
         house_id: houseId,
         file: fileName,
@@ -100,19 +110,22 @@ export function normalizeHouseXml(parsed: any, fileName: string): NewRecord[] {
     out.push({
       source: 'house',
       subSource: 'filing',
-      recordType: reportType,
-      date: isoDate,
-      fiscalYear: reportYear,
-      entityName: orgName || null,
+      recordType: str(reportType),
+      date: dateStr(isoDate),
+      fiscalYear: coerceFiscalYear(isoDate, reportYear),
+      entityName: str(orgName),
       entityType: 'registrant',
-      entityState: null,
-      counterparty: clientName || null,
-      amountCents:
-        i === 0 ? (parseCents(doc.income) ?? parseCents(doc.expenses)) : null,
-      description,
-      tags: JSON.stringify([issueCode].filter(Boolean)),
+      entityState: '',
+      counterparty: str(clientName),
+      amountCents: cents(
+        i === 0
+          ? (parseCents(doc.income) ?? parseCents(doc.expenses))
+          : null,
+      ),
+      description: str(description),
+      tags: tags(issueCode),
       rawHash: hash('house', 'filing', houseId ?? fileName, String(i)),
-      metadata: JSON.stringify({
+      metadata: meta({
         senate_id: senateId,
         house_id: houseId,
         file: fileName,

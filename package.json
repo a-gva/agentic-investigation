@@ -5,36 +5,33 @@
   "private": true,
   "scripts": {
     "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
-    "etl": "tsx src/modules/etl/pipeline.ts --data-dir ./data --db ./investigation.db",
+    "etl": "pnpm db:migrate && bun run src/modules/etl/pipeline.ts --data-dir ./data",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "packageManager": "pnpm@9.12.3",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.102.0",
-    "@huggingface/transformers": "^4.2.0",
-    "@libsql/client": "^0.17.3",
-    "better-sqlite3": "^12.10.0",
+    "@t3-oss/env-nuxt": "^0.13.11",
     "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
     "fast-xml-parser": "^5.8.0",
     "glob": "^13.0.6",
-    "sqlite-vec": "^0.1.9",
-    "stream-json": "^3.4.0"
+    "pg": "^8.21.0",
+    "stream-chain": "^4.2.5",
+    "stream-json": "^3.4.0",
+    "uuid": "^14.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "latest",
     "@types/node": "^25.9.2",
+    "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.22.4",
     "typescript": "^5",
     "vitest": "^4.1.8"
-  },
-  "trustedDependencies": [
-    "better-sqlite3",
-    "onnxruntime-node",
-    "protobufjs"
-  ]
+  }
 }
