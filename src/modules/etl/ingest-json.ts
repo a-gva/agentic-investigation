@@ -16,7 +16,7 @@ function isContributionReport(obj: any): boolean {
 export async function ingestJsonFile(
   filePath: string,
   onBatch: (records: NewDbRecord[]) => void | Promise<void>,
-  batchSize = 200,
+  batchSize = 2_000,
 ): Promise<number> {
   const isContributions = filePath.toLowerCase().includes('contribution');
   const etlPath = toEtlFilePath(filePath);
