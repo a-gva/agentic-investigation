@@ -72,6 +72,8 @@ export async function ingestPressFile(
       filePath: etlPath,
       metadata: meta({
         url,
+        title: title || null,
+        text: text || null,
         bioguide_id: member.bioguide_id ?? null,
         party: member.party ?? null,
         chamber: member.chamber ?? null,

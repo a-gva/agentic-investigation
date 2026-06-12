@@ -209,7 +209,7 @@ async function runHouseETL(db: DB): Promise<number> {
 // --- Congress Press ---
 
 async function runPressETL(db: DB): Promise<number> {
-  const files = (await glob(`${dataDir}/congress_press/*.jsonl`)).sort();
+  const files = (await glob(`${dataDir}/congress_press/**/*.jsonl`)).sort();
 
   let total = 0;
   for (const filePath of files) {
