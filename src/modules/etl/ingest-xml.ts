@@ -2,6 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import type { NewDbRecord } from '../../db/schema.js';
+import { toEtlFilePath } from './etl-file-path.js';
 import { normalizeHouseXml } from './normalize-house.js';
 
 const XML_ARRAY_TAGS = new Set([
@@ -27,5 +28,9 @@ const xmlParser = new XMLParser({
 export function ingestXmlFile(filePath: string): NewDbRecord[] {
   const content = readFileSync(filePath, 'utf8');
   const parsed = xmlParser.parse(content);
-  return normalizeHouseXml(parsed, basename(filePath));
+  const etlPath = toEtlFilePath(filePath);
+  return normalizeHouseXml(parsed, basename(filePath)).map((row) => ({
+    ...row,
+    filePath: etlPath,
+  }));
 }

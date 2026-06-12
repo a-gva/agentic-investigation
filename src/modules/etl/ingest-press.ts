@@ -10,6 +10,7 @@ import {
   str,
   tags,
 } from './coerce.js';
+import { toEtlFilePath } from './etl-file-path.js';
 
 function hash(...parts: (string | null | undefined)[]): string {
   return createHash('sha256')
@@ -23,6 +24,7 @@ export async function ingestPressFile(
   onBatch: (records: NewDbRecord[]) => void | Promise<void>,
   batchSize = 200,
 ): Promise<number> {
+  const etlPath = toEtlFilePath(filePath);
   const rl = createInterface({
     input: createReadStream(filePath),
     crlfDelay: Infinity,
@@ -67,8 +69,11 @@ export async function ingestPressFile(
       description: str(description),
       tags: tags(member.party, member.chamber),
       rawHash: hash('press', url),
+      filePath: etlPath,
       metadata: meta({
         url,
+        title: title || null,
+        text: text || null,
         bioguide_id: member.bioguide_id ?? null,
         party: member.party ?? null,
         chamber: member.chamber ?? null,

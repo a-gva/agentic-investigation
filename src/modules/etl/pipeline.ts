@@ -1,27 +1,84 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { glob } from 'glob';
 import { existsSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { openDB, type DB } from '../../db/index.js';
 import { env } from '../env/index.js';
 import type { NewDbRecord } from '../../db/schema.js';
 import { agentRuns, etlRuns, records } from '../../db/schema.js';
+import { setDataDir, toEtlFilePath } from './etl-file-path.js';
 import { ingestJsonFile } from './ingest-json.js';
 import { ingestPressFile } from './ingest-press.js';
 import { ingestXmlFile } from './ingest-xml.js';
 import { insertRecords, type DbOrTx } from './insert-records.js';
 
 // --- CLI args ---
+type EtlSource = 'senate' | 'house' | 'congress_press';
+
 const args = process.argv.slice(2);
 function getArg(flag: string, fallback: string): string {
   const i = args.indexOf(flag);
   return i !== -1 && args[i + 1] ? args[i + 1]! : fallback;
 }
-const dataDir = resolve(getArg('--data-dir', './data'));
-const databaseUrl = env.DATABASE_URL;
+
+const SOURCE_ALIASES: Record<string, EtlSource> = {
+  senate: 'senate',
+  house: 'house',
+  press: 'congress_press',
+  congress_press: 'congress_press',
+};
 
 function log(msg: string) {
   process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${msg}\n`);
+}
+
+function resolveCorpusRoot(dir: string): {
+  dataDir: string;
+  implicitSource?: EtlSource;
+} {
+  const resolved = resolve(dir);
+  const name = basename(resolved).toLowerCase();
+  if (name === 'senate' || name === 'house') {
+    return { dataDir: dirname(resolved), implicitSource: name };
+  }
+  if (name === 'congress_press') {
+    return { dataDir: dirname(resolved), implicitSource: 'congress_press' };
+  }
+  return { dataDir: resolved };
+}
+
+function parseSources(
+  explicit: string,
+  implicit?: EtlSource,
+): Set<EtlSource> | 'all' {
+  const raw = explicit.trim().toLowerCase();
+  if (raw === 'all' || raw === '') {
+    return implicit != null ? new Set([implicit]) : 'all';
+  }
+
+  const sources = new Set<EtlSource>();
+  for (const part of raw.split(',')) {
+    const key = part.trim().toLowerCase();
+    const mapped = SOURCE_ALIASES[key];
+    if (!mapped) {
+      log(
+        `ERROR: unknown --source "${part}". Use senate, house, press, all, or comma-separated`,
+      );
+      process.exit(1);
+    }
+    sources.add(mapped);
+  }
+  return sources;
+}
+
+const { dataDir, implicitSource } = resolveCorpusRoot(
+  getArg('--data-dir', './data'),
+);
+const sourcesFilter = parseSources(getArg('--source', 'all'), implicitSource);
+const databaseUrl = env.DATABASE_URL;
+
+function shouldRun(source: EtlSource): boolean {
+  return sourcesFilter === 'all' || sourcesFilter.has(source);
 }
 
 function formatDuration(ms: number): string {
@@ -42,12 +99,6 @@ function perfLog(phase: string, elapsedMs: number, rows?: number) {
 }
 
 // --- Resumability helpers ---
-
-/** Project-root-relative path stored in etl_runs (e.g. /data/senate/2022/...). */
-function toEtlFilePath(filePath: string): string {
-  const rel = relative(dataDir, resolve(filePath)).replace(/\\/g, '/');
-  return `/data/${rel}`;
-}
 
 async function alreadyDone(db: DB, filePath: string): Promise<boolean> {
   const key = toEtlFilePath(filePath);
@@ -214,7 +265,7 @@ async function runHouseETL(db: DB): Promise<number> {
 // --- Congress Press ---
 
 async function runPressETL(db: DB): Promise<number> {
-  const files = (await glob(`${dataDir}/congress_press/*.jsonl`)).sort();
+  const files = (await glob(`${dataDir}/congress_press/**/*.jsonl`)).sort();
 
   let total = 0;
   for (const filePath of files) {
@@ -251,13 +302,21 @@ async function main() {
     process.exit(1);
   }
 
+  setDataDir(dataDir);
+
   log(`Connecting to Postgres (${databaseUrl})`);
   const { db, close } = openDB();
+  const sourceLabel =
+    sourcesFilter === 'all'
+      ? 'all'
+      : [...sourcesFilter].sort().join(',');
+  log(`Sources: ${sourceLabel}`);
+
   const runResult = await db
     .insert(agentRuns)
     .values({
       skillName: 'legislative-etl',
-      inputsHash: `${dataDir}::${databaseUrl}`,
+      inputsHash: `${dataDir}::${sourceLabel}::${databaseUrl}`,
       status: 'running',
     })
     .returning({ id: agentRuns.id });
@@ -268,23 +327,33 @@ async function main() {
 
   const pipelineStart = performance.now();
 
-  log('=== Phase 1: Senate JSON ===');
-  const senateStart = performance.now();
-  const senateRows = await runSenateETL(db);
-  perfLog('Senate', performance.now() - senateStart, senateRows);
-  log(`Senate total: ${senateRows}`);
+  let senateRows = 0;
+  let houseRows = 0;
+  let pressRows = 0;
 
-  log('=== Phase 2: House XML ===');
-  const houseStart = performance.now();
-  const houseRows = await runHouseETL(db);
-  perfLog('House', performance.now() - houseStart, houseRows);
-  log(`House total: ${houseRows}`);
+  if (shouldRun('senate')) {
+    log('=== Senate JSON ===');
+    const senateStart = performance.now();
+    senateRows = await runSenateETL(db);
+    perfLog('Senate', performance.now() - senateStart, senateRows);
+    log(`Senate total: ${senateRows}`);
+  }
 
-  log('=== Phase 3: Congress Press ===');
-  const pressStart = performance.now();
-  const pressRows = await runPressETL(db);
-  perfLog('Press', performance.now() - pressStart, pressRows);
-  log(`Press total: ${pressRows}`);
+  if (shouldRun('house')) {
+    log('=== House XML ===');
+    const houseStart = performance.now();
+    houseRows = await runHouseETL(db);
+    perfLog('House', performance.now() - houseStart, houseRows);
+    log(`House total: ${houseRows}`);
+  }
+
+  if (shouldRun('congress_press')) {
+    log('=== Congress Press ===');
+    const pressStart = performance.now();
+    pressRows = await runPressETL(db);
+    perfLog('Press', performance.now() - pressStart, pressRows);
+    log(`Press total: ${pressRows}`);
+  }
 
   const total = senateRows + houseRows + pressRows;
   const elapsed = performance.now() - pipelineStart;

@@ -22,6 +22,13 @@
       "when": 1781212395661,
       "tag": "0002_redundant_skullbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781214144820,
+      "tag": "0003_stale_wind_dancer",
+      "breakpoints": true
     }
   ]
 }

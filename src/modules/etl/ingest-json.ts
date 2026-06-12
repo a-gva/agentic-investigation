@@ -3,6 +3,7 @@ import chain from 'stream-chain';
 import { parser } from 'stream-json';
 import { streamArray } from 'stream-json/streamers/stream-array.js';
 import type { NewDbRecord } from '../../db/schema.js';
+import { toEtlFilePath } from './etl-file-path.js';
 import { normalizeContribution, normalizeFiling } from './normalize-senate.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,6 +19,7 @@ export async function ingestJsonFile(
   batchSize = 200,
 ): Promise<number> {
   const isContributions = filePath.toLowerCase().includes('contribution');
+  const etlPath = toEtlFilePath(filePath);
 
   const pipeline = chain([createReadStream(filePath), parser(), streamArray()]);
 
@@ -28,10 +30,11 @@ export async function ingestJsonFile(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const obj = value as any;
 
-    const records: NewDbRecord[] =
+    const records: NewDbRecord[] = (
       isContributions || isContributionReport(obj)
         ? normalizeContribution(obj)
-        : normalizeFiling(obj);
+        : normalizeFiling(obj)
+    ).map((row) => ({ ...row, filePath: etlPath }));
 
     batch.push(...records);
     if (batch.length >= batchSize) {
