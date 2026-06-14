@@ -3,17 +3,17 @@ import { glob } from 'glob';
 import { existsSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { openPool, tuneLoadSession, type DB } from '../../db/index.js';
-import { env } from '../env/index.js';
 import type { NewDbRecord } from '../../db/schema.js';
 import { agentRuns, records } from '../../db/schema.js';
+import { env } from '../env/index.js';
 import { runWithConcurrency } from './concurrency.js';
+import { setDataDir, toEtlFilePath } from './etl-file-path.js';
 import {
   loadDonePaths,
   markFileDone,
   markFilesDoneBulk,
   markFilesErrorBulk,
 } from './etl-runs.js';
-import { setDataDir, toEtlFilePath } from './etl-file-path.js';
 import { ingestJsonFile } from './ingest-json.js';
 import { ingestPressFile } from './ingest-press.js';
 import { insertRecords } from './insert-records.js';
@@ -86,10 +86,7 @@ const sourcesFilter = parseSources(getArg('--source', 'all'), implicitSource);
 const workersArg = Number(getArg('--workers', String(PARALLEL.houseWorkers)));
 const houseWorkers = Math.min(
   PARALLEL.houseWorkers,
-  Math.max(
-    1,
-    Number.isFinite(workersArg) ? workersArg : PARALLEL.houseWorkers,
-  ),
+  Math.max(1, Number.isFinite(workersArg) ? workersArg : PARALLEL.houseWorkers),
 );
 const databaseUrl = env.DATABASE_URL;
 
@@ -264,9 +261,12 @@ async function runPressETL(db: DB): Promise<number> {
       try {
         let rows = 0;
         await db.transaction(async (tx) => {
-          rows = await ingestPressFile(filePath, async (batch: NewDbRecord[]) => {
-            await insertRecords(tx, batch);
-          });
+          rows = await ingestPressFile(
+            filePath,
+            async (batch: NewDbRecord[]) => {
+              await insertRecords(tx, batch);
+            },
+          );
           await markFileDone(tx, filePath, rows, 'congress_press');
         });
         log(`    → ${rows} records`);
@@ -297,9 +297,7 @@ async function main() {
   await tuneLoadSession(db);
 
   const sourceLabel =
-    sourcesFilter === 'all'
-      ? 'all'
-      : [...sourcesFilter].sort().join(',');
+    sourcesFilter === 'all' ? 'all' : [...sourcesFilter].sort().join(',');
   log(`Sources: ${sourceLabel} | house workers: ${houseWorkers}`);
 
   const runResult = await db
