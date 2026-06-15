@@ -82,6 +82,8 @@ function parseSources(
 const { dataDir, implicitSource } = resolveCorpusRoot(
   getArg('--data-dir', './data'),
 );
+// Glob requires forward slashes on all platforms (Windows path.resolve returns backslashes)
+const globDataDir = dataDir.replace(/\\/g, '/');
 const sourcesFilter = parseSources(getArg('--source', 'all'), implicitSource);
 const workersArg = Number(getArg('--workers', String(PARALLEL.houseWorkers)));
 const houseWorkers = Math.min(
@@ -118,8 +120,8 @@ function perfLog(phase: string, elapsedMs: number, rows?: number) {
 
 async function runSenateETL(db: DB): Promise<number> {
   const files = [
-    ...(await glob(`${dataDir}/senate/*/filings/filings_*.json`)),
-    ...(await glob(`${dataDir}/senate/*/contributions/contributions_*.json`)),
+    ...(await glob(`${globDataDir}/senate/*/filings/filings_*.json`)),
+    ...(await glob(`${globDataDir}/senate/*/contributions/contributions_*.json`)),
   ].sort();
 
   const donePaths = await loadDonePaths(db, 'senate');
@@ -166,7 +168,7 @@ async function runSenateETL(db: DB): Promise<number> {
 type ParsedHouseFile = { filePath: string; rows: NewDbRecord[] };
 
 async function runHouseETL(db: DB, xmlPool: XmlParsePool): Promise<number> {
-  const files = (await glob(`${dataDir}/house/**/*.xml`)).sort();
+  const files = (await glob(`${globDataDir}/house/**/*.xml`)).sort();
   const donePaths = await loadDonePaths(db, 'house');
   const BATCH = PARALLEL.houseBatchSize;
 
@@ -249,7 +251,7 @@ async function runHouseETL(db: DB, xmlPool: XmlParsePool): Promise<number> {
 // --- Congress Press ---
 
 async function runPressETL(db: DB): Promise<number> {
-  const files = (await glob(`${dataDir}/congress_press/**/*.jsonl`)).sort();
+  const files = (await glob(`${globDataDir}/congress_press/**/*.jsonl`)).sort();
   const donePaths = await loadDonePaths(db, 'congress_press');
   const pending = files.filter((f) => !donePaths.has(toEtlFilePath(f)));
   if (pending.length < files.length) {
