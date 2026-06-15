@@ -154,3 +154,6 @@ investigation.db*
 
 # PostgreSQL database
 postgres/data/
+
+# Any DS_Store files
+.DS_Store
