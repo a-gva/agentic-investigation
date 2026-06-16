@@ -12,10 +12,19 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_PASSWORD: admin
     volumes:
-      - ./postgres/data:/var/lib/postgresql
+      # Named volume (NOT a host bind-mount): the data dir lives on the Docker
+      # VM's native ext4 filesystem. On Windows/macOS this avoids the slow
+      # 9p/virtiofs host bridge that makes every Postgres write expensive
+      # (the main cause of the ~4-5x slower ETL on Windows), and the volume
+      # gets correct postgres:postgres ownership automatically. Matches the
+      # PG18 image's `VOLUME /var/lib/postgresql` (PGDATA = .../18/docker).
+      - pgdata:/var/lib/postgresql
       - ./postgres/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+volumes:
+  pgdata:
