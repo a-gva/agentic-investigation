@@ -68,6 +68,17 @@ export const countries = createTable('countries', {
 export type Country = typeof countries.$inferSelect;
 export type NewCountry = typeof countries.$inferInsert;
 
+export const filingTypes = createTable('filing_types', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type FilingType = typeof filingTypes.$inferSelect;
+export type NewFilingType = typeof filingTypes.$inferInsert;
+
 export const loadMembers = createTable('load_members', {
   id: serial('id').primaryKey(),
   bioguideId: text('bioguide_id').notNull().unique(),
