@@ -1,0 +1,14 @@
+# Normalize line endings for cross-platform checkouts.
+#
+# Shell scripts and the Postgres Docker entrypoints run INSIDE the Linux
+# container. If they are checked out with CRLF (the Windows default when
+# core.autocrlf=true), the kernel reads the shebang as `/usr/bin/env bash\r`
+# and the container crash-loops with `env: can't execute 'bash'` (exit 127).
+# Force LF regardless of the host OS or the user's git config.
+*.sh            text eol=lf
+docker-entrypoint.sh        text eol=lf
+docker-ensure-initdb.sh     text eol=lf
+
+# Dockerfiles are parsed/executed in the Linux build context — keep LF.
+Dockerfile      text eol=lf
+*.Dockerfile    text eol=lf
