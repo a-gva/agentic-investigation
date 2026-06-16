@@ -10,17 +10,12 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import { v7 } from 'uuid';
 
 export const createTable = pgTableCreator((name) => name);
 // ─── records ─────────────────────────────────────────────────────────────────
 
 export const records = createTable('records', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   source: text('source').notNull(),
   subSource: text('sub_source').notNull(),
   recordType: text('record_type').notNull(),
@@ -54,10 +49,6 @@ export type NormalizedRecord = Omit<NewDbRecord, 'filePath'>;
 
 export const entities = createTable('entities', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   canonicalId: text('canonical_id').notNull().unique(),
   rawName: text('raw_name').notNull(),
   source: text('source').notNull(),
@@ -75,10 +66,6 @@ export type NewEntity = typeof entities.$inferInsert;
 
 export const stories = createTable('stories', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   storyType: text('story_type'),
   headline: text('headline'),
   confidence: numeric('confidence'),
@@ -100,10 +87,6 @@ export type NewStory = typeof stories.$inferInsert;
 
 export const evidenceLinks = createTable('evidence_links', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   storyId: integer('story_id').references(() => stories.id),
   recordId: integer('record_id').references(() => records.id),
   field: text('field'),
@@ -119,10 +102,6 @@ export type NewEvidenceLink = typeof evidenceLinks.$inferInsert;
 
 export const investigationLedger = createTable('investigation_ledger', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   threadId: text('thread_id').notNull().unique(),
   status: text('status', {
     enum: ['open', 'verified', 'cold', 'published'],
@@ -138,10 +117,6 @@ export type NewInvestigationThread = typeof investigationLedger.$inferInsert;
 
 export const agentRuns = createTable('agent_runs', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   skillName: text('skill_name'),
   startedAt: timestamp('started_at').defaultNow().notNull(),
   finishedAt: timestamp('finished_at'),
@@ -158,10 +133,6 @@ export type NewAgentRun = typeof agentRuns.$inferInsert;
 
 export const etlRuns = createTable('etl_runs', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   filePath: text('file_path').unique(),
   source: text('source'),
   batch: text('batch'),
@@ -173,3 +144,27 @@ export const etlRuns = createTable('etl_runs', {
 
 export type EtlRun = typeof etlRuns.$inferSelect;
 export type NewEtlRun = typeof etlRuns.$inferInsert;
+
+export const parties = createTable('parties', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  acronym: text('acronym'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type Party = typeof parties.$inferSelect;
+export type NewParty = typeof parties.$inferInsert;
+
+// export const loadMembers = createTable('load_members', {
+//   id: serial('id').primaryKey(),
+//   uuid: text('uuid')
+//     .notNull()
+//     .unique()
+//     .$defaultFn(() => v7()),
+//   bioguideId: text('bioguide_id').notNull(),
+//   name: text('name').notNull(),
+//   memberType: text('member_type').notNull(),
+//   memberState: text('member_state').notNull(),
+//   memberDistrict: text('member_district').notNull(),
+// });

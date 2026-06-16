@@ -12,22 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1781194869896,
-      "tag": "0001_concerned_shotgun",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781212395661,
-      "tag": "0002_redundant_skullbuster",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1781214144820,
-      "tag": "0003_stale_wind_dancer",
+      "when": 1781641331638,
+      "tag": "0001_mature_maddog",
       "breakpoints": true
     }
   ]

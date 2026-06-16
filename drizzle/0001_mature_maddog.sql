@@ -1,19 +1,16 @@
 CREATE TABLE "agent_runs" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"uuid" text NOT NULL,
 	"skill_name" text,
 	"started_at" timestamp DEFAULT now() NOT NULL,
 	"finished_at" timestamp,
 	"inputs_hash" text,
 	"output_path" text,
 	"trace_path" text,
-	"status" text DEFAULT 'running',
-	CONSTRAINT "agent_runs_uuid_unique" UNIQUE("uuid")
+	"status" text DEFAULT 'running'
 );
 --> statement-breakpoint
 CREATE TABLE "entities" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"uuid" text NOT NULL,
 	"canonical_id" text NOT NULL,
 	"raw_name" text NOT NULL,
 	"source" text NOT NULL,
@@ -22,49 +19,51 @@ CREATE TABLE "entities" (
 	"senate_id" text,
 	"house_id" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "entities_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "entities_canonical_id_unique" UNIQUE("canonical_id")
 );
 --> statement-breakpoint
 CREATE TABLE "etl_runs" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"uuid" text NOT NULL,
 	"file_path" text,
 	"source" text,
+	"batch" text,
 	"rows_written" integer DEFAULT 0,
 	"started_at" timestamp DEFAULT now() NOT NULL,
 	"finished_at" timestamp,
 	"status" text DEFAULT 'running',
-	CONSTRAINT "etl_runs_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "etl_runs_file_path_unique" UNIQUE("file_path")
 );
 --> statement-breakpoint
 CREATE TABLE "evidence_links" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"uuid" text NOT NULL,
 	"story_id" integer,
 	"record_id" integer,
 	"field" text,
 	"excerpt" text,
 	"source_path" text,
-	"line_or_uuid" text,
-	CONSTRAINT "evidence_links_uuid_unique" UNIQUE("uuid")
+	"line_or_uuid" text
 );
 --> statement-breakpoint
 CREATE TABLE "investigation_ledger" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"uuid" text NOT NULL,
 	"thread_id" text NOT NULL,
 	"status" text DEFAULT 'open',
 	"summary" text,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "investigation_ledger_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "investigation_ledger_thread_id_unique" UNIQUE("thread_id")
+);
+--> statement-breakpoint
+CREATE TABLE "parties" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"acronym" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "parties_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "records" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"uuid" text NOT NULL,
 	"source" text NOT NULL,
 	"sub_source" text NOT NULL,
 	"record_type" text NOT NULL,
@@ -78,18 +77,17 @@ CREATE TABLE "records" (
 	"description" text NOT NULL,
 	"tags" jsonb DEFAULT '[]'::jsonb,
 	"raw_hash" text NOT NULL,
+	"file_path" text NOT NULL,
 	"risk_score" smallint,
 	"chunk_index" smallint DEFAULT 0,
 	"metadata" jsonb DEFAULT '{}'::jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "records_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "records_raw_hash_unique" UNIQUE("raw_hash")
 );
 --> statement-breakpoint
 CREATE TABLE "stories" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"uuid" text NOT NULL,
 	"story_type" text,
 	"headline" text,
 	"confidence" numeric,
@@ -101,8 +99,7 @@ CREATE TABLE "stories" (
 	"foia_requests" text DEFAULT '[]',
 	"record_ids" text DEFAULT '[]',
 	"evidence_links" text DEFAULT '[]',
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "stories_uuid_unique" UNIQUE("uuid")
+	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "evidence_links" ADD CONSTRAINT "evidence_links_story_id_stories_id_fk" FOREIGN KEY ("story_id") REFERENCES "public"."stories"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

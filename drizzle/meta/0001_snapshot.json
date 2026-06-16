@@ -1,5 +1,5 @@
 {
-  "id": "dcb0f8fb-5187-4c80-bf34-ca8b9447ec07",
+  "id": "3e3155f9-6e00-4326-964a-928a30f549b5",
   "prevId": "0c6754f3-ec91-4e79-be1c-6ca22c86f2b7",
   "version": "7",
   "dialect": "postgresql",
@@ -12,12 +12,6 @@
           "name": "id",
           "type": "serial",
           "primaryKey": true,
-          "notNull": true
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "skill_name": {
@@ -68,15 +62,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "agent_runs_uuid_unique": {
-          "name": "agent_runs_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -89,12 +75,6 @@
           "name": "id",
           "type": "serial",
           "primaryKey": true,
-          "notNull": true
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "canonical_id": {
@@ -151,13 +131,6 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "entities_uuid_unique": {
-          "name": "entities_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        },
         "entities_canonical_id_unique": {
           "name": "entities_canonical_id_unique",
           "nullsNotDistinct": false,
@@ -180,12 +153,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "file_path": {
           "name": "file_path",
           "type": "text",
@@ -194,6 +161,12 @@
         },
         "source": {
           "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "batch": {
+          "name": "batch",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -230,13 +203,6 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "etl_runs_uuid_unique": {
-          "name": "etl_runs_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        },
         "etl_runs_file_path_unique": {
           "name": "etl_runs_file_path_unique",
           "nullsNotDistinct": false,
@@ -257,12 +223,6 @@
           "name": "id",
           "type": "serial",
           "primaryKey": true,
-          "notNull": true
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "story_id": {
@@ -332,15 +292,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "evidence_links_uuid_unique": {
-          "name": "evidence_links_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -353,12 +305,6 @@
           "name": "id",
           "type": "serial",
           "primaryKey": true,
-          "notNull": true
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "thread_id": {
@@ -392,18 +338,64 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "investigation_ledger_uuid_unique": {
-          "name": "investigation_ledger_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        },
         "investigation_ledger_thread_id_unique": {
           "name": "investigation_ledger_thread_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "thread_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.parties": {
+      "name": "parties",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acronym": {
+          "name": "acronym",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "parties_name_unique": {
+          "name": "parties_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
           ]
         }
       },
@@ -419,12 +411,6 @@
           "name": "id",
           "type": "serial",
           "primaryKey": true,
-          "notNull": true
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "source": {
@@ -506,6 +492,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "risk_score": {
           "name": "risk_score",
           "type": "smallint",
@@ -545,13 +537,6 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "records_uuid_unique": {
-          "name": "records_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        },
         "records_raw_hash_unique": {
           "name": "records_raw_hash_unique",
           "nullsNotDistinct": false,
@@ -572,12 +557,6 @@
           "name": "id",
           "type": "serial",
           "primaryKey": true,
-          "notNull": true
-        },
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "story_type": {
@@ -664,15 +643,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "stories_uuid_unique": {
-          "name": "stories_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
