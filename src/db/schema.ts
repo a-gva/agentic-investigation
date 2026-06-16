@@ -94,6 +94,18 @@ export const newGovernmentEntitySchema = createInsertSchema(governmentEntities);
 export type GovernmentEntity = typeof governmentEntities.$inferSelect;
 export type NewGovernmentEntity = typeof governmentEntities.$inferInsert;
 
+export const lobbyingActivityIssues = createTable('lobbying_activity_issues', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type LobbyingActivityIssue = typeof lobbyingActivityIssues.$inferSelect;
+export type NewLobbyingActivityIssue =
+  typeof lobbyingActivityIssues.$inferInsert;
+
 export const loadMembers = createTable('load_members', {
   id: serial('id').primaryKey(),
   bioguideId: text('bioguide_id').notNull().unique(),

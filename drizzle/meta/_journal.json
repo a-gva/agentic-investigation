@@ -57,6 +57,13 @@
       "when": 1781651783966,
       "tag": "0007_sparkling_human_torch",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781652806626,
+      "tag": "0008_premium_expediter",
+      "breakpoints": true
     }
   ]
 }
