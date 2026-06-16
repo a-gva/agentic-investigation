@@ -36,6 +36,13 @@
       "when": 1781650453579,
       "tag": "0004_tidy_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781650835033,
+      "tag": "0005_stiff_tiger_shark",
+      "breakpoints": true
     }
   ]
 }
