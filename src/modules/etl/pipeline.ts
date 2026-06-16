@@ -82,8 +82,11 @@ function parseSources(
 const { dataDir, implicitSource } = resolveCorpusRoot(
   getArg('--data-dir', './data'),
 );
-// Glob requires forward slashes on all platforms (Windows path.resolve returns backslashes)
-const globDataDir = dataDir.replace(/\\/g, '/');
+// Glob requires forward slashes. On Windows, path.resolve() returns backslash-
+// separated paths; replace only on win32 so legitimate backslashes in POSIX
+// filenames (unusual but valid) are never corrupted on macOS/Linux.
+const globDataDir =
+  process.platform === 'win32' ? dataDir.replace(/\\/g, '/') : dataDir;
 const sourcesFilter = parseSources(getArg('--source', 'all'), implicitSource);
 const workersArg = Number(getArg('--workers', String(PARALLEL.houseWorkers)));
 const houseWorkers = Math.min(
