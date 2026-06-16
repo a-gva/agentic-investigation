@@ -13,15 +13,24 @@ export function setDataDir(dir: string): void {
  * `\` regex) avoids mangling paths that legitimately contain a backslash on
  * non-Windows filesystems.
  *
- * Throws if `filePath` resolves outside `dataDir` — this would cause
- * `relative()` to return a `..`-prefixed string, and using `posix.join` on
- * such a value would silently normalise `/data/../foo` → `/foo`, breaking the
- * invariant that every stored key starts with `/data/`.
+ * Throws if `filePath` resolves outside `dataDir`. Containment is validated
+ * by checking that the resolved absolute path starts with `dataDir + sep`,
+ * which correctly rejects cross-drive/UNC paths on Windows (where
+ * `relative()` would return an absolute path rather than a `..`-prefixed
+ * string) and avoids false positives for directory names that begin with `..`
+ * (e.g. `..foo`). A case-insensitive comparison is used on Windows to handle
+ * NTFS case folding.
  */
 export function toEtlFilePath(filePath: string): string {
-  const rel = relative(dataDir, resolve(filePath)).split(sep).join(posix.sep);
-  if (rel.startsWith('..')) {
+  const resolvedFile = resolve(filePath);
+  const prefix = dataDir.endsWith(sep) ? dataDir : dataDir + sep;
+  const contained =
+    process.platform === 'win32'
+      ? resolvedFile.toLowerCase().startsWith(prefix.toLowerCase())
+      : resolvedFile.startsWith(prefix);
+  if (!contained) {
     throw new Error(`toEtlFilePath: filePath is outside dataDir.\n  filePath: ${filePath}\n  dataDir:  ${dataDir}`);
   }
+  const rel = relative(dataDir, resolvedFile).split(sep).join(posix.sep);
   return `/data/${rel}`;
 }
