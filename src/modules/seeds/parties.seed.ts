@@ -1,14 +1,12 @@
 import { db, type DB } from '../../db';
-import { parties as partiesTable, type NewParty } from '../../db/schema';
+import { parties as partiesTable, type NewCongressType } from '../../db/schema';
 
-export const parties: NewParty[] = [
+export const parties: NewCongressType[] = [
   {
-    name: 'Democrat',
-    acronym: 'D',
+    name: 'house',
   },
   {
-    name: 'Republican',
-    acronym: 'R',
+    name: 'senate',
   },
 ];
 

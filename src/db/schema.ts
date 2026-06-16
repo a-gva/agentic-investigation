@@ -14,6 +14,51 @@ import {
 export const createTable = pgTableCreator((name) => name);
 // ─── records ─────────────────────────────────────────────────────────────────
 
+export const states = createTable('states', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type State = typeof states.$inferSelect;
+export type NewState = typeof states.$inferInsert;
+
+export const parties = createTable('parties', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  acronym: text('acronym'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type Party = typeof parties.$inferSelect;
+export type NewParty = typeof parties.$inferInsert;
+
+export const congressTypes = createTable('congress_types', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type CongressType = typeof congressTypes.$inferSelect;
+export type NewCongressType = typeof congressTypes.$inferInsert;
+
+export const loadMembers = createTable('load_members', {
+  id: serial('id').primaryKey(),
+  bioguideId: text('bioguide_id').notNull().unique(),
+  name: text('name').notNull(),
+  memberType: text('member_type').notNull(),
+  memberState: text('member_state').notNull(),
+  memberDistrict: text('member_district').notNull(),
+  partyId: integer('party_id').references(() => parties.id),
+});
+
+export type LoadMember = typeof loadMembers.$inferSelect;
+export type NewLoadMember = typeof loadMembers.$inferInsert;
+
 export const records = createTable('records', {
   id: serial('id').primaryKey(),
   source: text('source').notNull(),
@@ -144,27 +189,3 @@ export const etlRuns = createTable('etl_runs', {
 
 export type EtlRun = typeof etlRuns.$inferSelect;
 export type NewEtlRun = typeof etlRuns.$inferInsert;
-
-export const parties = createTable('parties', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull().unique(),
-  acronym: text('acronym'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-export type Party = typeof parties.$inferSelect;
-export type NewParty = typeof parties.$inferInsert;
-
-// export const loadMembers = createTable('load_members', {
-//   id: serial('id').primaryKey(),
-//   uuid: text('uuid')
-//     .notNull()
-//     .unique()
-//     .$defaultFn(() => v7()),
-//   bioguideId: text('bioguide_id').notNull(),
-//   name: text('name').notNull(),
-//   memberType: text('member_type').notNull(),
-//   memberState: text('member_state').notNull(),
-//   memberDistrict: text('member_district').notNull(),
-// });

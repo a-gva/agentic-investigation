@@ -15,6 +15,20 @@
       "when": 1781641331638,
       "tag": "0001_mature_maddog",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781642387171,
+      "tag": "0002_absurd_liz_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781643047374,
+      "tag": "0003_glorious_ultimates",
+      "breakpoints": true
     }
   ]
 }
