@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 
 export const createTable = pgTableCreator((name) => name);
 // ─── records ─────────────────────────────────────────────────────────────────
@@ -78,6 +79,20 @@ export const filingTypes = createTable('filing_types', {
 
 export type FilingType = typeof filingTypes.$inferSelect;
 export type NewFilingType = typeof filingTypes.$inferInsert;
+
+export const governmentEntities = createTable('government_entities', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  code: text('code').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const governmentEntitySchema = createSelectSchema(governmentEntities);
+export const newGovernmentEntitySchema = createInsertSchema(governmentEntities);
+
+export type GovernmentEntity = typeof governmentEntities.$inferSelect;
+export type NewGovernmentEntity = typeof governmentEntities.$inferInsert;
 
 export const loadMembers = createTable('load_members', {
   id: serial('id').primaryKey(),
