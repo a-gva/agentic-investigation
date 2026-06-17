@@ -110,11 +110,22 @@ export const loadMembers = createTable('load_members', {
   id: serial('id').primaryKey(),
   bioguideId: text('bioguide_id').notNull().unique(),
   name: text('name').notNull(),
-  memberType: text('member_type').notNull(),
   memberState: text('member_state').notNull(),
   memberDistrict: text('member_district').notNull(),
+  memberType: text('member_type').references(() => congressTypes.name),
   partyId: integer('party_id').references(() => parties.id),
 });
+
+export const loadMemberRelations = relations(loadMembers, ({ one }) => ({
+  party: one(parties, {
+    fields: [loadMembers.partyId],
+    references: [parties.id],
+  }),
+  congressType: one(congressTypes, {
+    fields: [loadMembers.memberType],
+    references: [congressTypes.name],
+  }),
+}));
 
 export type LoadMember = typeof loadMembers.$inferSelect;
 export type NewLoadMember = typeof loadMembers.$inferInsert;

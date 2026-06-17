@@ -4,11 +4,13 @@ import { loadMembers } from '../../../db/schema.js';
 import type { EtlLog } from './etl-log.js';
 import {
   detectUnknownMemberKeys,
+  resolveCongressTypeName,
   resolvePartyName,
   type RawMember,
 } from './types.js';
 
 export type PartyLookup = Map<string, number>;
+export type CongressTypeLookup = Set<string>;
 
 export async function loadPartyLookup(db: DbOrTx): Promise<PartyLookup> {
   const { parties } = await import('../../../db/schema.js');
@@ -20,6 +22,16 @@ export async function loadPartyLookup(db: DbOrTx): Promise<PartyLookup> {
   return lookup;
 }
 
+export async function loadCongressTypeLookup(
+  db: DbOrTx,
+): Promise<CongressTypeLookup> {
+  const { congressTypes } = await import('../../../db/schema.js');
+  const rows = await db
+    .select({ name: congressTypes.name })
+    .from(congressTypes);
+  return new Set(rows.map((row) => row.name.toLowerCase()));
+}
+
 /** Dedupes in-flight member resolution across parallel file workers. */
 export type MemberCache = Map<string, Promise<string | null>>;
 
@@ -27,6 +39,7 @@ async function resolveLoadMember(
   db: DbOrTx,
   member: RawMember,
   partyLookup: PartyLookup,
+  congressTypeLookup: CongressTypeLookup,
   log: EtlLog,
 ): Promise<string | null> {
   if (member && typeof member === 'object') {
@@ -45,11 +58,17 @@ async function resolveLoadMember(
   }
 
   const name = member.name?.trim();
-  const memberType = member.chamber?.trim();
+  const chamberRaw = member.chamber?.trim();
   const memberState = member.state?.trim();
 
-  if (!name || !memberType || !memberState) {
+  if (!name || !chamberRaw || !memberState) {
     log.recordSkipped('member', 0, `incomplete member for ${bioguideId}`);
+    return null;
+  }
+
+  const memberType = resolveCongressTypeName(chamberRaw);
+  if (!memberType || !congressTypeLookup.has(memberType)) {
+    log.recordUnmappedValue('member.chamber', member.chamber ?? '');
     return null;
   }
 
@@ -114,6 +133,7 @@ export async function getOrCreateLoadMember(
   db: DbOrTx,
   member: RawMember | null,
   partyLookup: PartyLookup,
+  congressTypeLookup: CongressTypeLookup,
   cache: MemberCache,
   log: EtlLog,
 ): Promise<string | null> {
@@ -137,7 +157,13 @@ export async function getOrCreateLoadMember(
   const pending = cache.get(bioguideId);
   if (pending) return pending;
 
-  const promise = resolveLoadMember(db, member, partyLookup, log);
+  const promise = resolveLoadMember(
+    db,
+    member,
+    partyLookup,
+    congressTypeLookup,
+    log,
+  );
   cache.set(bioguideId, promise);
   return promise;
 }

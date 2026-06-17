@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { openPool } from '../../db/index.js';
 import {
+  congressTypes,
   etlRuns,
   loadCongressPress,
   loadMembers,
@@ -13,10 +14,14 @@ import {
 import { EtlLog } from '../etl/congress-press/etl-log.js';
 import { ingestCongressPressFile } from '../etl/congress-press/ingest-file.js';
 import { runCongressPressETL } from '../etl/congress-press/run.js';
-import { loadPartyLookup } from '../etl/congress-press/resolve-member.js';
+import {
+  loadCongressTypeLookup,
+  loadPartyLookup,
+} from '../etl/congress-press/resolve-member.js';
 import {
   detectUnknownKeys,
   parseCongressPressRow,
+  resolveCongressTypeName,
   resolvePartyName,
 } from '../etl/congress-press/types.js';
 
@@ -30,6 +35,12 @@ describe('congress-press types', () => {
     expect(resolvePartyName('Democrat')).toBe('Democratic');
     expect(resolvePartyName('Republican')).toBe('Republican');
     expect(resolvePartyName('Unknown')).toBeNull();
+  });
+
+  it('resolveCongressTypeName normalizes chamber to lowercase', () => {
+    expect(resolveCongressTypeName('House')).toBe('house');
+    expect(resolveCongressTypeName('Senate')).toBe('senate');
+    expect(resolveCongressTypeName('')).toBeNull();
   });
 
   it('detectUnknownKeys flags extra top-level fields', () => {
@@ -82,6 +93,10 @@ describe('congress-press ETL integration', () => {
         .insert(parties)
         .values({ name: 'Republican', acronym: 'R' })
         .onConflictDoNothing({ target: parties.name });
+      await db
+        .insert(congressTypes)
+        .values([{ name: 'house' }, { name: 'senate' }])
+        .onConflictDoNothing({ target: congressTypes.name });
       await db.delete(etlRuns);
     } catch {
       dbAvailable = false;
@@ -108,6 +123,7 @@ describe('congress-press ETL integration', () => {
 
     const log = new EtlLog();
     const partyLookup = await loadPartyLookup(db);
+    const congressTypeLookup = await loadCongressTypeLookup(db);
     const memberCache = new Map<string, Promise<string | null>>();
 
     const { rowsParsed, rowsInserted } = await ingestCongressPressFile(
@@ -115,6 +131,7 @@ describe('congress-press ETL integration', () => {
       db,
       MOCK_FILE,
       partyLookup,
+      congressTypeLookup,
       memberCache,
       log,
     );
@@ -130,6 +147,7 @@ describe('congress-press ETL integration', () => {
     const members = await db.select().from(loadMembers);
     expect(members.length).toBeGreaterThan(0);
     expect(members.every((m) => m.memberDistrict === '')).toBe(true);
+    expect(members.every((m) => m.memberType === 'house')).toBe(true);
 
     const withMember = await db
       .select()

@@ -78,6 +78,13 @@
       "when": 1781661759646,
       "tag": "0010_parallel_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781664720534,
+      "tag": "0011_tough_quasimodo",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import {
 import type { EtlLog } from './etl-log.js';
 import {
   getOrCreateLoadMember,
+  type CongressTypeLookup,
   type MemberCache,
   type PartyLookup,
 } from './resolve-member.js';
@@ -42,6 +43,7 @@ export async function ingestCongressPressFile(
   pressDb: DbOrTx,
   filePath: string,
   partyLookup: PartyLookup,
+  congressTypeLookup: CongressTypeLookup,
   memberCache: MemberCache,
   log: EtlLog,
 ): Promise<IngestFileResult> {
@@ -101,6 +103,7 @@ export async function ingestCongressPressFile(
       memberDb,
       row.member,
       partyLookup,
+      congressTypeLookup,
       memberCache,
       log,
     );

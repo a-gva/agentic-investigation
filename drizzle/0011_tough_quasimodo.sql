@@ -1,0 +1,2 @@
+ALTER TABLE "load_members" ALTER COLUMN "member_type" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "load_members" ADD CONSTRAINT "load_members_member_type_congress_types_name_fk" FOREIGN KEY ("member_type") REFERENCES "public"."congress_types"("name") ON DELETE no action ON UPDATE no action;

@@ -143,3 +143,11 @@ export function resolvePartyName(party: string | undefined): string | null {
   if (!party) return null;
   return PARTY_ALIASES[party.trim().toLowerCase()] ?? null;
 }
+
+/** Normalizes member.chamber to lowercase for congress_types.name FK. */
+export function resolveCongressTypeName(
+  chamber: string | undefined,
+): string | null {
+  if (!chamber?.trim()) return null;
+  return chamber.trim().toLowerCase();
+}

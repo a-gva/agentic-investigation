@@ -15,7 +15,11 @@ import { PARALLEL } from '../parallel.js';
 import { EtlLog } from './etl-log.js';
 import { formatEtlFileError } from './errors.js';
 import { ingestCongressPressFile } from './ingest-file.js';
-import { loadPartyLookup, type MemberCache } from './resolve-member.js';
+import {
+  loadCongressTypeLookup,
+  loadPartyLookup,
+  type MemberCache,
+} from './resolve-member.js';
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_LOG_PATH = resolve(MODULE_DIR, 'log.txt');
@@ -58,6 +62,7 @@ export async function runCongressPressETL(
   );
 
   const partyLookup = await loadPartyLookup(db);
+  const congressTypeLookup = await loadCongressTypeLookup(db);
   const memberCache: MemberCache = new Map();
 
   await runWithConcurrency(
@@ -75,6 +80,7 @@ export async function runCongressPressETL(
             tx,
             filePath,
             partyLookup,
+            congressTypeLookup,
             memberCache,
             fileLog,
           );
