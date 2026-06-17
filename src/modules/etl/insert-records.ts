@@ -1,4 +1,3 @@
-import { v7 as uuidv7 } from 'uuid';
 import type { DB } from '../../db/index.js';
 import type { NewDbRecord } from '../../db/schema.js';
 import { records } from '../../db/schema.js';
@@ -27,7 +26,6 @@ export async function insertRecords(
 
     const withUuid = chunk.map((row) => ({
       ...row,
-      uuid: row.uuid ?? uuidv7(),
     }));
 
     const result = await db

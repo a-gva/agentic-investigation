@@ -1,1 +1,0 @@
-ALTER TABLE "etl_runs" ADD COLUMN "batch" text;

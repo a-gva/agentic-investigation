@@ -10,17 +10,117 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import { v7 } from 'uuid';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 
 export const createTable = pgTableCreator((name) => name);
 // ─── records ─────────────────────────────────────────────────────────────────
 
+export const states = createTable('states', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type State = typeof states.$inferSelect;
+export type NewState = typeof states.$inferInsert;
+
+export const parties = createTable('parties', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  acronym: text('acronym'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type Party = typeof parties.$inferSelect;
+export type NewParty = typeof parties.$inferInsert;
+
+export const congressTypes = createTable('congress_types', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type CongressType = typeof congressTypes.$inferSelect;
+export type NewCongressType = typeof congressTypes.$inferInsert;
+
+export const contributionTypes = createTable('contribution_types', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type ContributionType = typeof contributionTypes.$inferSelect;
+export type NewContributionType = typeof contributionTypes.$inferInsert;
+
+export const countries = createTable('countries', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type Country = typeof countries.$inferSelect;
+export type NewCountry = typeof countries.$inferInsert;
+
+export const filingTypes = createTable('filing_types', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type FilingType = typeof filingTypes.$inferSelect;
+export type NewFilingType = typeof filingTypes.$inferInsert;
+
+export const governmentEntities = createTable('government_entities', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  code: text('code').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const governmentEntitySchema = createSelectSchema(governmentEntities);
+export const newGovernmentEntitySchema = createInsertSchema(governmentEntities);
+
+export type GovernmentEntity = typeof governmentEntities.$inferSelect;
+export type NewGovernmentEntity = typeof governmentEntities.$inferInsert;
+
+export const lobbyingActivityIssues = createTable('lobbying_activity_issues', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  abbreviation: text('abbreviation').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type LobbyingActivityIssue = typeof lobbyingActivityIssues.$inferSelect;
+export type NewLobbyingActivityIssue =
+  typeof lobbyingActivityIssues.$inferInsert;
+
+export const loadMembers = createTable('load_members', {
+  id: serial('id').primaryKey(),
+  bioguideId: text('bioguide_id').notNull().unique(),
+  name: text('name').notNull(),
+  memberType: text('member_type').notNull(),
+  memberState: text('member_state').notNull(),
+  memberDistrict: text('member_district').notNull(),
+  partyId: integer('party_id').references(() => parties.id),
+});
+
+export type LoadMember = typeof loadMembers.$inferSelect;
+export type NewLoadMember = typeof loadMembers.$inferInsert;
+
 export const records = createTable('records', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   source: text('source').notNull(),
   subSource: text('sub_source').notNull(),
   recordType: text('record_type').notNull(),
@@ -54,10 +154,6 @@ export type NormalizedRecord = Omit<NewDbRecord, 'filePath'>;
 
 export const entities = createTable('entities', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   canonicalId: text('canonical_id').notNull().unique(),
   rawName: text('raw_name').notNull(),
   source: text('source').notNull(),
@@ -75,10 +171,6 @@ export type NewEntity = typeof entities.$inferInsert;
 
 export const stories = createTable('stories', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   storyType: text('story_type'),
   headline: text('headline'),
   confidence: numeric('confidence'),
@@ -100,10 +192,6 @@ export type NewStory = typeof stories.$inferInsert;
 
 export const evidenceLinks = createTable('evidence_links', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   storyId: integer('story_id').references(() => stories.id),
   recordId: integer('record_id').references(() => records.id),
   field: text('field'),
@@ -119,10 +207,6 @@ export type NewEvidenceLink = typeof evidenceLinks.$inferInsert;
 
 export const investigationLedger = createTable('investigation_ledger', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   threadId: text('thread_id').notNull().unique(),
   status: text('status', {
     enum: ['open', 'verified', 'cold', 'published'],
@@ -138,10 +222,6 @@ export type NewInvestigationThread = typeof investigationLedger.$inferInsert;
 
 export const agentRuns = createTable('agent_runs', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   skillName: text('skill_name'),
   startedAt: timestamp('started_at').defaultNow().notNull(),
   finishedAt: timestamp('finished_at'),
@@ -158,10 +238,6 @@ export type NewAgentRun = typeof agentRuns.$inferInsert;
 
 export const etlRuns = createTable('etl_runs', {
   id: serial('id').primaryKey(),
-  uuid: text('uuid')
-    .notNull()
-    .unique()
-    .$defaultFn(() => v7()),
   filePath: text('file_path').unique(),
   source: text('source'),
   batch: text('batch'),
