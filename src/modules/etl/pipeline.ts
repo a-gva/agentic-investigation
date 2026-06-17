@@ -15,7 +15,7 @@ import {
 } from './etl-runs.js';
 import { setDataDir, toEtlFilePath } from './etl-file-path.js';
 import { ingestJsonFile } from './ingest-json.js';
-import { ingestPressFile } from './ingest-press.js';
+import { runCongressPressETL } from './congress-press/run.js';
 import { insertRecords } from './insert-records.js';
 import { PARALLEL } from './parallel.js';
 import { XmlParsePool } from './workers/xml-parse-pool.js';
@@ -254,37 +254,8 @@ async function runHouseETL(db: DB, xmlPool: XmlParsePool): Promise<number> {
 // --- Congress Press ---
 
 async function runPressETL(db: DB): Promise<number> {
-  const files = (await glob(`${globDataDir}/congress_press/**/*.jsonl`)).sort();
-  const donePaths = await loadDonePaths(db, 'congress_press');
-  const pending = files.filter((f) => !donePaths.has(toEtlFilePath(f)));
-  if (pending.length < files.length) {
-    log(`  skip (done) ${files.length - pending.length} press files`);
-  }
-
-  const counts = await runWithConcurrency(
-    pending,
-    PARALLEL.pressFiles,
-    async (filePath) => {
-      log(`  press ${filePath}`);
-      try {
-        let rows = 0;
-        await db.transaction(async (tx) => {
-          rows = await ingestPressFile(filePath, async (batch: NewDbRecord[]) => {
-            await insertRecords(tx, batch);
-          });
-          await markFileDone(tx, filePath, rows, 'congress_press');
-        });
-        log(`    → ${rows} records`);
-        return rows;
-      } catch (err) {
-        log(`    ERROR: ${err}`);
-        await markFilesErrorBulk(db, 'congress_press', [filePath]);
-        return 0;
-      }
-    },
-  );
-
-  return counts.reduce((sum, n) => sum + n, 0);
+  const { rowsInserted } = await runCongressPressETL(db, { dataDir });
+  return rowsInserted;
 }
 
 // --- Main ---

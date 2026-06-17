@@ -15,7 +15,12 @@ export type DB = ReturnType<typeof openDB>['db'];
 export const db = drizzle(DATABASE_URL);
 
 export function openPool(max = 3) {
-  const pool = new Pool({ connectionString: DATABASE_URL, max });
+  const pool = new Pool({
+    connectionString: DATABASE_URL,
+    max,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
+  });
   const pooled = drizzle(pool);
   return {
     db: pooled,

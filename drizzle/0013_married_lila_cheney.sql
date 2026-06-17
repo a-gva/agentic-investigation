@@ -1,0 +1,1 @@
+ALTER TABLE "load_congress_press" ALTER COLUMN "title" DROP NOT NULL;

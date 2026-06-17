@@ -152,6 +152,9 @@ investigation.db*
 *.db-shm
 *.db-wal
 
+# Congress Press ETL audit log
+src/modules/etl/congress-press/log.txt
+
 # PostgreSQL database
 postgres/data/
 

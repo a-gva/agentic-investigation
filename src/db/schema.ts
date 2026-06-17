@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   date,
   integer,
@@ -110,14 +110,54 @@ export const loadMembers = createTable('load_members', {
   id: serial('id').primaryKey(),
   bioguideId: text('bioguide_id').notNull().unique(),
   name: text('name').notNull(),
-  memberType: text('member_type').notNull(),
   memberState: text('member_state').notNull(),
   memberDistrict: text('member_district').notNull(),
+  memberType: text('member_type').references(() => congressTypes.name),
   partyId: integer('party_id').references(() => parties.id),
 });
 
+export const loadMemberRelations = relations(loadMembers, ({ one }) => ({
+  party: one(parties, {
+    fields: [loadMembers.partyId],
+    references: [parties.id],
+  }),
+  congressType: one(congressTypes, {
+    fields: [loadMembers.memberType],
+    references: [congressTypes.name],
+  }),
+}));
+
 export type LoadMember = typeof loadMembers.$inferSelect;
 export type NewLoadMember = typeof loadMembers.$inferInsert;
+
+export const loadCongressPress = createTable('load_congress_press', {
+  id: serial('id').primaryKey(),
+  url: text('url').notNull().unique(),
+  title: text('title'),
+  date: date('date'),
+  dateSource: text('date_source'),
+  source: text('source').notNull(),
+  domain: text('domain').notNull(),
+  scraper: text('scraper').notNull(),
+  text: text('text'),
+  collectedAt: timestamp('collected_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  memberId: text('member_id').references(() => loadMembers.bioguideId),
+});
+
+export type LoadCongressPress = typeof loadCongressPress.$inferSelect;
+export type NewLoadCongressPress = typeof loadCongressPress.$inferInsert;
+
+export const loadCongressPressRelations = relations(
+  loadCongressPress,
+  ({ one }) => ({
+    member: one(loadMembers, {
+      fields: [loadCongressPress.memberId],
+      references: [loadMembers.bioguideId],
+    }),
+  }),
+);
 
 export const records = createTable('records', {
   id: serial('id').primaryKey(),
