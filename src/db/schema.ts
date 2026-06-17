@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   date,
   integer,
@@ -118,6 +118,35 @@ export const loadMembers = createTable('load_members', {
 
 export type LoadMember = typeof loadMembers.$inferSelect;
 export type NewLoadMember = typeof loadMembers.$inferInsert;
+
+export const loadCongressPress = createTable('load_congress_press', {
+  id: serial('id').primaryKey(),
+  url: text('url').notNull().unique(),
+  title: text('title').notNull(),
+  date: date('date').notNull(),
+  dateSource: text('date_source').notNull(),
+  source: text('source').notNull(),
+  domain: text('domain').notNull(),
+  scraper: text('scraper').notNull(),
+  text: text('text').notNull(),
+  collectedAt: timestamp('collected_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  memberId: integer('member_id').references(() => loadMembers.id),
+});
+
+export type LoadCongressPress = typeof loadCongressPress.$inferSelect;
+export type NewLoadCongressPress = typeof loadCongressPress.$inferInsert;
+
+export const loadCongressPressRelations = relations(
+  loadCongressPress,
+  ({ one }) => ({
+    member: one(loadMembers, {
+      fields: [loadCongressPress.memberId],
+      references: [loadMembers.id],
+    }),
+  }),
+);
 
 export const records = createTable('records', {
   id: serial('id').primaryKey(),
