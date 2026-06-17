@@ -55,6 +55,24 @@ describe('congress-press types', () => {
     expect(result.missingFields.length).toBeGreaterThan(0);
   });
 
+  it('parseCongressPressRow allows missing title, text, date, and date_source', () => {
+    const { row, missingFields } = parseCongressPressRow({
+      url: 'https://example.com/release',
+      source: 'https://example.com/press',
+      domain: 'example.com',
+      scraper: 'example',
+      title: null,
+      text: null,
+      date: null,
+      date_source: null,
+    });
+    expect(missingFields).toEqual([]);
+    expect(row?.title).toBeNull();
+    expect(row?.text).toBeNull();
+    expect(row?.date).toBeNull();
+    expect(row?.dateSource).toBeNull();
+  });
+
   it('parseCongressPressRow maps a valid row', () => {
     const raw = JSON.parse(readFileSync(MOCK_FILE, 'utf8').split('\n')[0]!);
     const { row, missingFields } = parseCongressPressRow(raw);

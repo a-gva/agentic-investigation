@@ -133,7 +133,7 @@ export type NewLoadMember = typeof loadMembers.$inferInsert;
 export const loadCongressPress = createTable('load_congress_press', {
   id: serial('id').primaryKey(),
   url: text('url').notNull().unique(),
-  title: text('title').notNull(),
+  title: text('title'),
   date: date('date'),
   dateSource: text('date_source'),
   source: text('source').notNull(),

@@ -44,13 +44,13 @@ export type RawCongressPressRow = {
 
 export type ParsedPressRow = {
   url: string;
-  title: string;
-  date: string;
-  dateSource: string;
+  title: string | null;
+  date: string | null;
+  dateSource: string | null;
   source: string;
   domain: string;
   scraper: string;
-  text: string;
+  text: string | null;
   collectedAt: Date | null;
   updatedAt: Date | null;
   member: RawMember | null;
@@ -58,14 +58,21 @@ export type ParsedPressRow = {
 
 const REQUIRED_PRESS_FIELDS = [
   'url',
-  'title',
-  'date',
-  'date_source',
   'source',
   'domain',
   'scraper',
-  'text',
 ] as const;
+
+function optionalString(value: unknown): string | null {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+function optionalDate(value: unknown): string | null {
+  const raw = optionalString(value);
+  return raw ? raw.slice(0, 10) : null;
+}
 
 export function detectUnknownKeys(obj: Record<string, unknown>): string[] {
   return Object.keys(obj).filter((k) => !KNOWN_PRESS_KEYS.has(k));
@@ -116,14 +123,14 @@ export function parseCongressPressRow(
 
   return {
     row: {
-      url: String(obj.url),
-      title: String(obj.title),
-      date: String(obj.date).slice(0, 10),
-      dateSource: String(obj.date_source),
-      source: String(obj.source),
-      domain: String(obj.domain),
-      scraper: String(obj.scraper),
-      text: String(obj.text),
+      url: String(obj.url).trim(),
+      title: optionalString(obj.title),
+      date: optionalDate(obj.date),
+      dateSource: optionalString(obj.date_source),
+      source: String(obj.source).trim(),
+      domain: String(obj.domain).trim(),
+      scraper: String(obj.scraper).trim(),
+      text: optionalString(obj.text),
       collectedAt,
       updatedAt,
       member,

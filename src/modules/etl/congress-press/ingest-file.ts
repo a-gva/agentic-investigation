@@ -86,6 +86,21 @@ export async function ingestCongressPressFile(
 
     rowsParsed += 1;
 
+    if (row.title == null) {
+      log.recordMissingOrDefaulted('title', 'not in source, stored as null');
+    }
+    if (row.text == null) {
+      log.recordMissingOrDefaulted('text', 'not in source, stored as null');
+    }
+    if (row.date == null) {
+      log.recordMissingOrDefaulted('date', 'not in source, stored as null');
+    }
+    if (row.dateSource == null) {
+      log.recordMissingOrDefaulted(
+        'date_source',
+        'not in source, stored as null',
+      );
+    }
     if (!row.collectedAt) {
       log.recordMissingOrDefaulted(
         'collected_at',

@@ -10,6 +10,10 @@ export const parties: NewParty[] = [
     name: 'Republican',
     acronym: 'R',
   },
+  {
+    name: 'Independent',
+    acronym: 'I',
+  },
 ];
 
 export default async function seedParties(db: DB) {
