@@ -1,4 +1,4 @@
-import { db, type DB } from '../../db';
+import { type DB } from '../../db';
 import { congressTypes, type NewCongressType } from '../../db/schema';
 
 export const congress: NewCongressType[] = [
@@ -10,7 +10,7 @@ export const congress: NewCongressType[] = [
   },
 ];
 
-async function seedCongressTypes(db: DB) {
+export default async function seedCongressTypes(db: DB) {
   for (const congressType of congress) {
     const result = await db
       .insert(congressTypes)
@@ -21,5 +21,3 @@ async function seedCongressTypes(db: DB) {
     }
   }
 }
-
-void seedCongressTypes(db);

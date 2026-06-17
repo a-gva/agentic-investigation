@@ -1,4 +1,4 @@
-import { db, type DB } from '../../db';
+import { type DB } from '../../db';
 import {
   lobbyingActivityIssues as lobbyingActivityIssuesTable,
   type NewLobbyingActivityIssue,
@@ -323,7 +323,7 @@ export const lobbyingActivityIssues: NewLobbyingActivityIssue[] = [
   },
 ];
 
-async function seedLobbyingActivityIssues(db: DB) {
+export default async function seedLobbyingActivityIssues(db: DB) {
   for (const lobbyingActivityIssue of lobbyingActivityIssues) {
     const result = await db
       .insert(lobbyingActivityIssuesTable)
@@ -336,5 +336,3 @@ async function seedLobbyingActivityIssues(db: DB) {
     }
   }
 }
-
-void seedLobbyingActivityIssues(db);

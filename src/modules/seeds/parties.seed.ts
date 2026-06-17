@@ -1,16 +1,18 @@
-import { db, type DB } from '../../db';
-import { parties as partiesTable, type NewCongressType } from '../../db/schema';
+import { type DB } from '../../db';
+import { parties as partiesTable, type NewParty } from '../../db/schema';
 
-export const parties: NewCongressType[] = [
+export const parties: NewParty[] = [
   {
-    name: 'house',
+    name: 'Democratic',
+    acronym: 'D',
   },
   {
-    name: 'senate',
+    name: 'Republican',
+    acronym: 'R',
   },
 ];
 
-async function seedParties(db: DB) {
+export default async function seedParties(db: DB) {
   for (const party of parties) {
     const result = await db
       .insert(partiesTable)
@@ -21,5 +23,3 @@ async function seedParties(db: DB) {
     }
   }
 }
-
-void seedParties(db);

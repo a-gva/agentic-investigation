@@ -1,6 +1,6 @@
 import z from 'zod';
 import governmentEntitiesJson from '../../../data/senate/constants/government_entities.json';
-import { db, type DB } from '../../db';
+import { type DB } from '../../db';
 import { governmentEntities, newGovernmentEntitySchema } from '../../db/schema';
 
 const governmentEntitiesProcessor = () => {
@@ -14,7 +14,7 @@ const parsedGovernmentEntities = z
   .array(newGovernmentEntitySchema)
   .parse(governmentEntitiesProcessor());
 
-async function seedGovernmentEntities(db: DB) {
+export default async function seedGovernmentEntities(db: DB) {
   for (const governmentEntity of parsedGovernmentEntities) {
     const result = await db
       .insert(governmentEntities)
@@ -25,5 +25,3 @@ async function seedGovernmentEntities(db: DB) {
     }
   }
 }
-
-void seedGovernmentEntities(db);

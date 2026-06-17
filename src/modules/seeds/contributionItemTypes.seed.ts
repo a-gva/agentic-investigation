@@ -1,4 +1,4 @@
-import { db, type DB } from '../../db';
+import { type DB } from '../../db';
 import { contributionTypes, type NewContributionType } from '../../db/schema';
 
 export const contributionItemTypes: NewContributionType[] = [
@@ -24,7 +24,7 @@ export const contributionItemTypes: NewContributionType[] = [
   },
 ];
 
-async function seedContributionItemTypes(db: DB) {
+export default async function seedContributionItemTypes(db: DB) {
   for (const contributionItemType of contributionItemTypes) {
     const result = await db
       .insert(contributionTypes)
@@ -37,5 +37,3 @@ async function seedContributionItemTypes(db: DB) {
     }
   }
 }
-
-void seedContributionItemTypes(db);

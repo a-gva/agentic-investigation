@@ -1,4 +1,4 @@
-import { db, type DB } from '../../db';
+import { type DB } from '../../db';
 import {
   filingTypes as filingTypesTable,
   type NewFilingType,
@@ -207,7 +207,7 @@ export const filingTypes: NewFilingType[] = [
   },
 ];
 
-async function seedFilingTypes(db: DB) {
+export default async function seedFilingTypes(db: DB) {
   for (const filingType of filingTypes) {
     const result = await db
       .insert(filingTypesTable)
@@ -218,5 +218,3 @@ async function seedFilingTypes(db: DB) {
     }
   }
 }
-
-void seedFilingTypes(db);

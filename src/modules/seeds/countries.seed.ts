@@ -1,4 +1,4 @@
-import { db, type DB } from '../../db';
+import { type DB } from '../../db';
 import { countries, type NewCountry } from '../../db/schema';
 
 const countriesData: NewCountry[] = [
@@ -1008,7 +1008,7 @@ const countriesData: NewCountry[] = [
   },
 ];
 
-async function seedCountries(db: DB) {
+export default async function seedCountries(db: DB) {
   for (const country of countriesData) {
     const result = await db
       .insert(countries)
@@ -1019,5 +1019,3 @@ async function seedCountries(db: DB) {
     }
   }
 }
-
-void seedCountries(db);

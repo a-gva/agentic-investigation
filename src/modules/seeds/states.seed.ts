@@ -1,4 +1,4 @@
-import { db, type DB } from '../../db';
+import { type DB } from '../../db';
 import { states, type NewState } from '../../db/schema';
 
 const statesData: NewState[] = [
@@ -240,7 +240,7 @@ const statesData: NewState[] = [
   },
 ];
 
-async function seedStates(db: DB) {
+export default async function seedStates(db: DB) {
   for (const state of statesData) {
     const result = await db
       .insert(states)
@@ -251,5 +251,3 @@ async function seedStates(db: DB) {
     }
   }
 }
-
-void seedStates(db);
