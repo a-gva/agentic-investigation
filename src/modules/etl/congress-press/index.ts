@@ -1,6 +1,10 @@
+import { eq, sql } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { openPool, tuneLoadSession } from '../../../db/index.js';
+import { env } from '../../env/index.js';
+import { agentRuns } from '../../../db/schema.js';
+import { PARALLEL } from '../parallel.js';
 import { setDataDir } from '../etl-file-path.js';
 import { DEFAULT_LOG_PATH, runCongressPressETL } from './run.js';
 
@@ -19,6 +23,10 @@ function getArg(flag: string, fallback: string): string {
   return i !== -1 && args[i + 1] ? args[i + 1]! : fallback;
 }
 
+function hasFlag(flag: string): boolean {
+  return args.includes(flag);
+}
+
 function log(msg: string) {
   process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${msg}\n`);
 }
@@ -30,6 +38,7 @@ function logError(msg: string) {
 async function main() {
   const dataDir = resolve(getArg('--data-dir', './data'));
   const logPath = resolve(getArg('--log-file', DEFAULT_LOG_PATH));
+  const force = hasFlag('--force');
 
   if (!existsSync(dataDir)) {
     logError(`data directory not found: ${dataDir}`);
@@ -38,14 +47,33 @@ async function main() {
 
   setDataDir(dataDir);
 
-  const started = performance.now();
-  const { db, close } = openPool(3);
-  await tuneLoadSession(db);
+  const poolSize = PARALLEL.pressFiles + 2;
+  log(`Connecting to Postgres (pool=${poolSize})`);
+  const { db, close } = openPool(poolSize);
 
+  let runId: number | undefined;
   try {
+    await tuneLoadSession(db);
+
+    const runResult = await db
+      .insert(agentRuns)
+      .values({
+        skillName: 'congress-press-etl',
+        inputsHash: `${dataDir}::${env.DATABASE_URL}${force ? '::force' : ''}`,
+        outputPath: logPath,
+        status: 'running',
+      })
+      .returning({ id: agentRuns.id });
+    runId = runResult[0]?.id;
+
+    const started = performance.now();
+    log(`Congress Press ETL starting (force=${force})`);
+
     const { rowsInserted, etlLog } = await runCongressPressETL(db, {
       dataDir,
       logPath,
+      force,
+      onFileLog: log,
     });
 
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
@@ -61,9 +89,27 @@ async function main() {
     }
     log(`Congress Press ETL done in ${seconds}s — ${parts.join(', ')} → ${logPath}`);
 
+    if (runId != null) {
+      await db
+        .update(agentRuns)
+        .set({
+          status: etlLog.filesErrored > 0 ? 'error' : 'done',
+          finishedAt: sql`now()`,
+        })
+        .where(eq(agentRuns.id, runId));
+    }
+
     if (etlLog.filesErrored > 0) {
       process.exitCode = 1;
     }
+  } catch (err) {
+    if (runId != null) {
+      await db
+        .update(agentRuns)
+        .set({ status: 'error', finishedAt: sql`now()` })
+        .where(eq(agentRuns.id, runId));
+    }
+    throw err;
   } finally {
     await close();
   }

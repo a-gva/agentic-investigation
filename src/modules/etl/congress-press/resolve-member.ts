@@ -20,24 +20,15 @@ export async function loadPartyLookup(db: DbOrTx): Promise<PartyLookup> {
   return lookup;
 }
 
-/** Bioguide IDs already resolved in this ETL run. */
-export type MemberCache = Set<string>;
+/** Dedupes in-flight member resolution across parallel file workers. */
+export type MemberCache = Map<string, Promise<string | null>>;
 
-export async function getOrCreateLoadMember(
+async function resolveLoadMember(
   db: DbOrTx,
-  member: RawMember | null,
+  member: RawMember,
   partyLookup: PartyLookup,
-  cache: MemberCache,
   log: EtlLog,
 ): Promise<string | null> {
-  if (!member) {
-    log.recordMissingOrDefaulted(
-      'load_congress_press.member_id',
-      'no member object in source',
-    );
-    return null;
-  }
-
   if (member && typeof member === 'object') {
     for (const key of detectUnknownMemberKeys(member as Record<string, unknown>)) {
       log.recordUnknownKey(`member.${key}`);
@@ -67,8 +58,6 @@ export async function getOrCreateLoadMember(
     'not in source, defaulted to ""',
   );
 
-  if (cache.has(bioguideId)) return bioguideId;
-
   const existing = await db
     .select({ bioguideId: loadMembers.bioguideId })
     .from(loadMembers)
@@ -76,7 +65,6 @@ export async function getOrCreateLoadMember(
     .limit(1);
 
   if (existing[0]) {
-    cache.add(bioguideId);
     return bioguideId;
   }
 
@@ -119,6 +107,37 @@ export async function getOrCreateLoadMember(
     log.membersCreated += 1;
   }
 
-  cache.add(bioguideId);
   return bioguideId;
+}
+
+export async function getOrCreateLoadMember(
+  db: DbOrTx,
+  member: RawMember | null,
+  partyLookup: PartyLookup,
+  cache: MemberCache,
+  log: EtlLog,
+): Promise<string | null> {
+  if (!member) {
+    log.recordMissingOrDefaulted(
+      'load_congress_press.member_id',
+      'no member object in source',
+    );
+    return null;
+  }
+
+  const bioguideId = member.bioguide_id?.trim();
+  if (!bioguideId) {
+    log.recordMissingOrDefaulted(
+      'load_congress_press.member_id',
+      'member.bioguide_id missing',
+    );
+    return null;
+  }
+
+  const pending = cache.get(bioguideId);
+  if (pending) return pending;
+
+  const promise = resolveLoadMember(db, member, partyLookup, log);
+  cache.set(bioguideId, promise);
+  return promise;
 }

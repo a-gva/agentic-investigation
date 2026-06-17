@@ -108,7 +108,7 @@ describe('congress-press ETL integration', () => {
 
     const log = new EtlLog();
     const partyLookup = await loadPartyLookup(db);
-    const memberCache = new Set<string>();
+    const memberCache = new Map<string, Promise<string | null>>();
 
     const { rowsParsed, rowsInserted } = await ingestCongressPressFile(
       db,
