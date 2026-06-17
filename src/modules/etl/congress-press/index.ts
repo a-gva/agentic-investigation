@@ -19,6 +19,10 @@ function getArg(flag: string, fallback: string): string {
   return i !== -1 && args[i + 1] ? args[i + 1]! : fallback;
 }
 
+function log(msg: string) {
+  process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${msg}\n`);
+}
+
 function logError(msg: string) {
   process.stderr.write(`[${new Date().toISOString().slice(11, 19)}] ERROR: ${msg}\n`);
 }
@@ -34,19 +38,40 @@ async function main() {
 
   setDataDir(dataDir);
 
+  const started = performance.now();
   const { db, close } = openPool(3);
   await tuneLoadSession(db);
 
   try {
-    await runCongressPressETL(db, {
+    const { rowsInserted, etlLog } = await runCongressPressETL(db, {
       dataDir,
       logPath,
     });
+
+    const seconds = ((performance.now() - started) / 1000).toFixed(1);
+    const parts = [
+      `${etlLog.filesProcessed} files processed`,
+      `${rowsInserted.toLocaleString()} rows inserted`,
+    ];
+    if (etlLog.filesSkippedDone > 0) {
+      parts.push(`${etlLog.filesSkippedDone} skipped (already done)`);
+    }
+    if (etlLog.filesErrored > 0) {
+      parts.push(`${etlLog.filesErrored} errored`);
+    }
+    log(`Congress Press ETL done in ${seconds}s — ${parts.join(', ')} → ${logPath}`);
+
+    if (etlLog.filesErrored > 0) {
+      process.exitCode = 1;
+    }
   } finally {
     await close();
   }
 }
 
 if (import.meta.main) {
-  void main();
+  main().catch((err) => {
+    logError(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
 }

@@ -20,7 +20,8 @@ export async function loadPartyLookup(db: DbOrTx): Promise<PartyLookup> {
   return lookup;
 }
 
-export type MemberCache = Map<string, number>;
+/** Bioguide IDs already resolved in this ETL run. */
+export type MemberCache = Set<string>;
 
 export async function getOrCreateLoadMember(
   db: DbOrTx,
@@ -28,7 +29,7 @@ export async function getOrCreateLoadMember(
   partyLookup: PartyLookup,
   cache: MemberCache,
   log: EtlLog,
-): Promise<number | null> {
+): Promise<string | null> {
   if (!member) {
     log.recordMissingOrDefaulted(
       'load_congress_press.member_id',
@@ -66,18 +67,17 @@ export async function getOrCreateLoadMember(
     'not in source, defaulted to ""',
   );
 
-  const cached = cache.get(bioguideId);
-  if (cached != null) return cached;
+  if (cache.has(bioguideId)) return bioguideId;
 
   const existing = await db
-    .select({ id: loadMembers.id })
+    .select({ bioguideId: loadMembers.bioguideId })
     .from(loadMembers)
     .where(eq(loadMembers.bioguideId, bioguideId))
     .limit(1);
 
   if (existing[0]) {
-    cache.set(bioguideId, existing[0].id);
-    return existing[0].id;
+    cache.add(bioguideId);
+    return bioguideId;
   }
 
   const partyName = resolvePartyName(member.party);
@@ -108,18 +108,17 @@ export async function getOrCreateLoadMember(
     .onConflictDoNothing({ target: loadMembers.bioguideId });
 
   const inserted = await db
-    .select({ id: loadMembers.id })
+    .select({ bioguideId: loadMembers.bioguideId })
     .from(loadMembers)
     .where(eq(loadMembers.bioguideId, bioguideId))
     .limit(1);
 
-  const id = inserted[0]?.id;
-  if (id == null) return null;
+  if (!inserted[0]) return null;
 
   if (!existing[0]) {
     log.membersCreated += 1;
   }
 
-  cache.set(bioguideId, id);
-  return id;
+  cache.add(bioguideId);
+  return bioguideId;
 }

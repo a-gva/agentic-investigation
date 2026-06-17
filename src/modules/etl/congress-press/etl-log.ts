@@ -15,6 +15,7 @@ export type SkippedRecord = {
 export class EtlLog {
   filesProcessed = 0;
   filesSkippedDone = 0;
+  filesErrored = 0;
   rowsInserted = 0;
   rowsSkipped = 0;
   membersCreated = 0;
@@ -45,6 +46,7 @@ export class EtlLog {
   merge(other: EtlLog) {
     this.filesProcessed += other.filesProcessed;
     this.filesSkippedDone += other.filesSkippedDone;
+    this.filesErrored += other.filesErrored;
     this.rowsInserted += other.rowsInserted;
     this.rowsSkipped += other.rowsSkipped;
     this.membersCreated += other.membersCreated;
@@ -70,6 +72,7 @@ export class EtlLog {
     lines.push('=== Summary ===');
     lines.push(`Files processed: ${this.filesProcessed}`);
     lines.push(`Files skipped (already done): ${this.filesSkippedDone}`);
+    lines.push(`Files errored: ${this.filesErrored}`);
     lines.push(`Rows inserted: ${this.rowsInserted}`);
     lines.push(`Rows skipped: ${this.rowsSkipped}`);
     lines.push(`Members created: ${this.membersCreated}`);

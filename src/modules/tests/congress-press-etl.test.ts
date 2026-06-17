@@ -108,7 +108,7 @@ describe('congress-press ETL integration', () => {
 
     const log = new EtlLog();
     const partyLookup = await loadPartyLookup(db);
-    const memberCache = new Map<string, number>();
+    const memberCache = new Set<string>();
 
     const { rowsParsed, rowsInserted } = await ingestCongressPressFile(
       db,
@@ -136,7 +136,7 @@ describe('congress-press ETL integration', () => {
       .from(loadCongressPress)
       .where(eq(loadCongressPress.url, JSON.parse(readFileSync(MOCK_FILE, 'utf8').split('\n')[0]!).url))
       .limit(1);
-    expect(withMember[0]?.memberId).toBeTruthy();
+    expect(withMember[0]?.memberId).toBe('B000740');
 
     const formatted = log.format();
     expect(formatted).toContain('member.member_district');

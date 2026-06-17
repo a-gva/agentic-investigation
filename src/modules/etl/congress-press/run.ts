@@ -48,7 +48,7 @@ export async function runCongressPressETL(
   etlLog.filesSkippedDone = files.length - pending.length;
 
   const partyLookup = await loadPartyLookup(db);
-  const memberCache: MemberCache = new Map();
+  const memberCache: MemberCache = new Set();
 
   await runWithConcurrency(
     pending,
@@ -74,6 +74,7 @@ export async function runCongressPressETL(
         return rowsParsed;
       } catch (err) {
         logError(filePath, err);
+        etlLog.filesErrored += 1;
         await markFilesErrorBulk(db, 'congress_press', [filePath]);
         return 0;
       }

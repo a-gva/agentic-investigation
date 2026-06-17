@@ -132,7 +132,7 @@ export const loadCongressPress = createTable('load_congress_press', {
   collectedAt: timestamp('collected_at').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  memberId: integer('member_id').references(() => loadMembers.id),
+  memberId: text('member_id').references(() => loadMembers.bioguideId),
 });
 
 export type LoadCongressPress = typeof loadCongressPress.$inferSelect;
@@ -143,7 +143,7 @@ export const loadCongressPressRelations = relations(
   ({ one }) => ({
     member: one(loadMembers, {
       fields: [loadCongressPress.memberId],
-      references: [loadMembers.id],
+      references: [loadMembers.bioguideId],
     }),
   }),
 );
